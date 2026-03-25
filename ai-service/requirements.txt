@@ -1,6 +1,8 @@
 Flask==3.0.3
-tensorflow==2.16.1
-opencv-python==4.9.0.80
-numpy==1.26.4
-Pillow==10.3.0
 flask-cors==4.0.0
+
+# Uncomment below when adding real AI model inference:
+# tensorflow==2.16.1
+# opencv-python==4.9.0.80
+# numpy==1.26.4
+# Pillow==10.3.0

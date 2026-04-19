@@ -140,29 +140,6 @@ export default function FarmApp() {
 
         {/* Main App Content Area */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto', position: 'relative' }}>
-          
-          {/* Dynamic Top Navbar */}
-          <div className="navbar-glass" style={{ padding: '1rem 3rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, zIndex: 100, width: '100%' }}>
-             <h2 style={{ fontSize: '1.4rem', fontFamily: 'Space Grotesk', fontWeight: 700, margin: 0, color: '#f8fafc', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-               <Activity size={20} color="#4ADE80" /> {TABS.find(t => t.id === activeTab)?.label}
-             </h2>
-             
-             <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-               <div className="search-bar" style={{ padding: '0.75rem 1.25rem', borderRadius: '99px', display: 'flex', alignItems: 'center', gap: '0.75rem', color: '#64748B', width: '280px' }}>
-                 <Search size={16} /> 
-                 <input type="text" placeholder="Search parameters..." style={{ border: 'none', outline: 'none', background: 'transparent', width: '100%', fontSize: '0.9rem', fontFamily: 'inherit', color: 'white' }} />
-               </div>
-               
-               <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} style={{ position: 'relative', cursor: 'pointer', color: '#94A3B8', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', width: '42px', height: '42px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                 <Bell size={18} />
-                 <div style={{ position: 'absolute', top: '10px', right: '12px', width: '8px', height: '8px', background: '#EF4444', borderRadius: '50%', boxShadow: '0 0 10px rgba(239,68,68,0.8)' }} />
-               </motion.button>
-               
-               <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} style={{ cursor: 'pointer', color: '#94A3B8', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', width: '42px', height: '42px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                 <Settings size={18} />
-               </motion.button>
-             </div>
-          </div>
 
           {/* Workspace Area */}
           <div style={{ display: 'flex', flex: 1, flexDirection: 'column' }}>

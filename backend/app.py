@@ -4,6 +4,12 @@ import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import database
+import requests
+
+# TMDB Configuration
+# TODO: Replace with your actual TMDB API key
+TMDB_API_KEY = "YOUR_TMDB_API_KEY"
+TMDB_BASE_URL = "https://api.themoviedb.org/3"
 
 # Initialize database
 database.init_db()
@@ -99,6 +105,27 @@ def remove_favorite_movie():
     data = request.json
     database.remove_favorite(data.get('uid'), data.get('movieId'))
     return jsonify({"message": "Removed from favorites"})
+
+# ---------------------------------------------------------
+# TMDB (The Movie Database) Live Data Endpoints
+# ---------------------------------------------------------
+
+@app.route('/api/tmdb/trending', methods=['GET'])
+def get_trending_movies():
+    url = f"{TMDB_BASE_URL}/movie/popular?api_key={TMDB_API_KEY}"
+    response = requests.get(url)
+    if response.status_code == 200:
+        return jsonify(response.json())
+    return jsonify({"error": "Failed to fetch from TMDB"}), response.status_code
+
+@app.route('/api/tmdb/movie/<int:movie_id>', methods=['GET'])
+def get_tmdb_movie_details(movie_id):
+    url = f"{TMDB_BASE_URL}/movie/{movie_id}?api_key={TMDB_API_KEY}"
+    response = requests.get(url)
+    if response.status_code == 200:
+        return jsonify(response.json())
+    return jsonify({"error": "Failed to fetch from TMDB"}), response.status_code
+
 
 if __name__ == '__main__':
     app.run(port=5000, debug=True)

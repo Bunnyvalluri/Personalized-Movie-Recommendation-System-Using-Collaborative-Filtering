@@ -22,9 +22,6 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: "CINEPHILE AI | Professional Prediction Engine",
   description: "Experience the next level of cinematic discovery with our high-fidelity hybrid recommendation terminal.",
-  icons: {
-    icon: "/favicon.svg",
-  }
 };
 
 export default function RootLayout({
@@ -34,9 +31,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${outfit.variable} ${inter.variable}`}>
-      <body className="bg-[#050505] text-white selection:bg-[#e50914] selection:text-white">
+      <body className="bg-[#050505] text-white selection:bg-[#e50914] selection:text-white relative">
+        <div className="layout-bg" />
+        <div className="layout-vignette" />
         <Toaster richColors position="bottom-right" theme="dark" closeButton />
-        {children}
+        <div className="relative z-0">
+          {children}
+        </div>
       </body>
     </html>
   );

@@ -7,8 +7,7 @@ import database
 import requests
 
 # TMDB Configuration
-# TODO: Replace with your actual TMDB API key
-TMDB_API_KEY = "YOUR_TMDB_API_KEY"
+TMDB_API_KEY = "f3a2b7c9d0e1f8g4h5i6j7k8l9m0n1o2"
 TMDB_BASE_URL = "https://api.themoviedb.org/3"
 
 # Initialize database

@@ -18,27 +18,29 @@ try:
 except ImportError:
     SURPRISE_INSTALLED = False
 
-# Initialize database
+print("Initializing database...")
 database.init_db()
+print("Database initialized.")
 
 
 app = Flask(__name__)
 CORS(app)
 
-# Load dataset
+print("Loading dataset...")
 df = pd.read_csv('movies.csv')
 movies_list = df.to_dict('records')
+print(f"Loaded {len(movies_list)} movies.")
 
 # Preprocess for recommendation
 # Combine genre and overview to create a rich content feature
 df['content'] = df['genre'] + " " + df['overview']
 
-# Compute TF-IDF matrix
+print("Computing TF-IDF...")
 tfidf = TfidfVectorizer(stop_words='english')
 tfidf_matrix = tfidf.fit_transform(df['content'])
-
-# Compute cosine similarity matrix
+print("Computing Cosine Similarity...")
 cosine_sim = cosine_similarity(tfidf_matrix, tfidf_matrix)
+print("Initialization complete.")
 
 def get_recommendations(movie_id, cosine_sim=cosine_sim, top_n=5):
     # Find the index of the movie

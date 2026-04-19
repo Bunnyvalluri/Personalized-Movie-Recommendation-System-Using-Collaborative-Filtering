@@ -5,12 +5,14 @@ import Navbar from '@/components/Navbar';
 import Hero from '@/components/Hero';
 import MovieRow from '@/components/MovieRow';
 import MovieModal from '@/components/MovieModal';
+import SkeletonRow from '@/components/SkeletonRow';
+import Footer from '@/components/Footer';
 import { getTrending } from '@/lib/api';
 
 interface Movie {
   id: number;
   title: string;
-  name?: string; // For TV shows
+  name?: string; 
   overview: string;
   backdrop_path: string;
   poster_path: string;
@@ -64,7 +66,8 @@ export default function Home() {
       } catch (error) {
         console.error('Failed to fetch data:', error);
       } finally {
-        setIsLoading(false);
+         // Artificial delay for professional skeleton feel
+         setTimeout(() => setIsLoading(false), 800);
       }
     };
     fetchData();
@@ -80,34 +83,34 @@ export default function Home() {
     setIsSearching(false);
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-[#050505]">
-        <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#e50914] border-t-transparent shadow-[0_0_15px_#e50914]" />
-      </div>
-    );
-  }
-
   return (
-    <main className="relative min-h-screen bg-[#050505] pb-24 font-inter">
+    <main className="relative min-h-screen bg-[#050505] pb-24 font-inter selection:bg-[#e50914]">
       <Navbar onSearch={handleSearch} onClearSearch={handleClearSearch} />
       
       {!isSearching ? (
         <>
-          {trendingMovies.length > 0 && <Hero movie={trendingMovies[0]} />}
-
-          <div className="relative -mt-48 space-y-12 pb-20">
-            <MovieRow title="Pinned Selection" movies={trendingMovies.slice(0, 5)} onMovieClick={setSelectedMovie} />
-            <MovieRow title="Trending Now" movies={trendingMovies.slice(5)} onMovieClick={setSelectedMovie} />
-            <MovieRow title="Premium Drama" movies={dramaMovies} onMovieClick={setSelectedMovie} />
-            <MovieRow title="Anime Collection" movies={animeMovies} onMovieClick={setSelectedMovie} />
-            <MovieRow title="Escapist Reality TV" movies={realityTV} onMovieClick={setSelectedMovie} />
-            <MovieRow title="Literary Horror Masterpieces" movies={horrorBooks} onMovieClick={setSelectedMovie} />
-
-          </div>
+          {isLoading ? (
+             <div className="pt-32 space-y-24">
+                <SkeletonRow />
+                <SkeletonRow />
+                <SkeletonRow />
+             </div>
+          ) : (
+            <>
+              {trendingMovies.length > 0 && <Hero movie={trendingMovies[0]} />}
+              <div className="relative -mt-48 space-y-12 pb-20">
+                <MovieRow title="Pinned Selection" movies={trendingMovies.slice(0, 5)} onMovieClick={setSelectedMovie} />
+                <MovieRow title="Trending Now" movies={trendingMovies.slice(5)} onMovieClick={setSelectedMovie} />
+                <MovieRow title="Premium Drama" movies={dramaMovies} onMovieClick={setSelectedMovie} />
+                <MovieRow title="Anime Collection" movies={animeMovies} onMovieClick={setSelectedMovie} />
+                <MovieRow title="Escapist Reality TV" movies={realityTV} onMovieClick={setSelectedMovie} />
+                <MovieRow title="Literary Horror Masterpieces" movies={horrorBooks} onMovieClick={setSelectedMovie} />
+              </div>
+            </>
+          )}
         </>
       ) : (
-        <div className="pt-32 px-6 lg:px-16 max-w-[1920px] mx-auto">
+        <div className="pt-32 px-6 lg:px-16 max-w-[1920px] mx-auto min-h-screen">
           <div className="flex items-center justify-between mb-12">
              <h2 className="text-4xl font-black uppercase tracking-tighter">Search Results</h2>
              <span className="text-white/40 text-sm font-medium">{searchResults.length} matches found</span>
@@ -136,6 +139,7 @@ export default function Home() {
         </div>
       )}
 
+      <Footer />
       <MovieModal movie={selectedMovie} onClose={() => setSelectedMovie(null)} />
     </main>
   );

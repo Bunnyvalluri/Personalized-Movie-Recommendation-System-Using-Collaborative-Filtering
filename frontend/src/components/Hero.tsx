@@ -1,65 +1,65 @@
 'use client';
 
-import { Play, Info } from 'lucide-react';
+import { Play, Info, SquarePlay } from 'lucide-react';
 import { formatImageUrl } from '@/lib/api';
 import { motion } from 'framer-motion';
 
-interface Movie {
-  id: number;
-  title: string;
-  overview: string;
-  backdrop_path: string;
-  poster_path: string;
-}
-
-export default function Hero({ movie }: { movie: Movie }) {
-  if (!movie) return <div className="h-[80vh] w-full bg-[#0f0f0f]" />;
+export default function Hero({ movie }: { movie: any }) {
+  if (!movie) return <div className="h-[90vh] w-full bg-[#050505] skeleton" />;
 
   return (
-    <div className="relative h-[100vh] w-full lg:h-[95vh]">
+    <div className="relative h-[95vh] w-full overflow-hidden bg-black">
       <div className="absolute inset-0">
         <img
           src={formatImageUrl(movie.backdrop_path)}
           alt={movie.title}
-          className="h-full w-full object-cover"
+          className="h-full w-full object-cover scale-105"
         />
-        <div className="hero-gradient absolute inset-0" />
-        <div className="hero-side-gradient absolute inset-0" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-[#050505]/20 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#050505] via-[#050505]/40 to-transparent" />
       </div>
 
-      <div className="absolute top-[30%] flex max-w-2xl flex-col space-y-4 px-4 lg:left-12 lg:space-y-6 lg:px-0">
-        <motion.h1 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-4xl font-black md:text-6xl lg:text-7xl"
-        >
-          {movie.title}
-        </motion.h1>
-        
-        <motion.p 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="line-clamp-3 text-lg text-white/80 md:text-xl lg:max-w-xl"
-        >
-          {movie.overview}
-        </motion.p>
-
+      <div className="absolute h-full w-full flex flex-col justify-center px-6 lg:px-16 max-w-[1920px] mx-auto z-10">
         <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="flex flex-row space-x-3"
+          initial={{ opacity: 0, x: -50 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          className="max-w-3xl space-y-8"
         >
-          <button className="flex items-center gap-x-2 rounded bg-white px-5 py-2.5 text-black transition-opacity hover:opacity-80 md:px-8 md:py-3.5 md:text-xl">
-            <Play className="fill-current h-6 w-6" />
-            Play
-          </button>
-          <button className="flex items-center gap-x-2 rounded bg-gray-500/70 px-5 py-2.5 text-white transition-all hover:bg-gray-500/50 md:px-8 md:py-3.5 md:text-xl">
-            <Info className="h-6 w-6" />
-            More Info
-          </button>
+          <div className="flex items-center gap-3">
+            <span className="bg-[#e50914] text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-sm">Original</span>
+            <span className="text-white/40 text-xs font-medium tracking-widest uppercase">Movie Collection</span>
+          </div>
+
+          <h1 className="text-5xl md:text-7xl lg:text-8xl font-black tracking-tight leading-[0.9] drop-shadow-2xl">
+            {movie.title.toUpperCase()}
+          </h1>
+          
+          <p className="line-clamp-3 text-lg md:text-xl text-white/70 max-w-xl font-light leading-relaxed">
+            {movie.overview}
+          </p>
+
+          <div className="flex items-center gap-4">
+            <button className="group relative flex items-center gap-3 rounded bg-white px-8 py-3.5 text-black font-bold transition-all hover:scale-105 active:scale-95 shadow-lg">
+              <Play className="fill-black h-5 w-5" />
+              Watch Now
+            </button>
+            <button className="flex items-center gap-3 rounded bg-white/10 backdrop-blur-md border border-white/10 px-8 py-3.5 text-white font-bold transition-all hover:bg-white/20 hover:scale-105 active:scale-95">
+              <Info className="h-5 w-5" />
+              More Info
+            </button>
+          </div>
         </motion.div>
+      </div>
+
+      <div className="absolute bottom-12 right-6 lg:right-16 flex items-center gap-4">
+        <div className="flex flex-col items-end border-r-4 border-white/20 pr-4">
+          <span className="text-[10px] uppercase font-bold tracking-widest text-white/40">Critics Choice</span>
+          <span className="text-2xl font-black">98% SCORE</span>
+        </div>
+        <div className="h-12 w-12 rounded-full border-2 border-white/20 flex items-center justify-center cursor-pointer hover:bg-white/5 transition">
+             <span className="text-sm font-bold">16+</span>
+        </div>
       </div>
     </div>
   );

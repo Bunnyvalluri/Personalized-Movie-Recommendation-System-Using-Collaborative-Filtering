@@ -1,30 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { X, Play, Plus, ThumbsUp, Volume2, Check, Star } from 'lucide-react';
+import { X, Play, Plus, ThumbsUp, Check, Star, Share2 } from 'lucide-react';
 import { formatImageUrl, getHybridRecommendations, addMovieToFavorites, addMovieRating, addMovieToHistory, removeMovieFromFavorites } from '@/lib/api';
 import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'sonner';
 
-interface Movie {
-  id: number;
-  title: string;
-  overview: string;
-  backdrop_path: string;
-  poster_path: string;
-  vote_average: number;
-  release_date: string;
-}
-
-interface MovieModalProps {
-  movie: Movie | null;
-  onClose: () => void;
-}
-
-export default function MovieModal({ movie, onClose }: MovieModalProps) {
-  const [recommendations, setRecommendations] = useState<Movie[]>([]);
+export default function MovieModal({ movie, onClose }: any) {
+  const [recommendations, setRecommendations] = useState<any[]>([]);
   const [isLiked, setIsLiked] = useState(false);
-  const [isRated, setIsRated] = useState(false);
-  const [showRating, setShowRating] = useState(false);
   const user_id = "demo_user_123";
 
   useEffect(() => {
@@ -34,146 +18,128 @@ export default function MovieModal({ movie, onClose }: MovieModalProps) {
           const recs = await getHybridRecommendations(user_id, movie.id);
           setRecommendations(recs);
         } catch (error) {
-          console.error('Failed to fetch recommendations:', error);
+          console.error(error);
         }
       };
       fetchRecs();
       setIsLiked(false);
-      setIsRated(false);
     }
   }, [movie]);
-
-  const handlePlay = async () => {
-    if (!movie) return;
-    await addMovieToHistory(user_id, movie.id);
-    alert(`Playing: ${movie.title}\nAdded to Watch History!`);
-  };
-
-  const handleFavorite = async () => {
-    if (!movie) return;
-    if (isLiked) {
-      await removeMovieFromFavorites(user_id, movie.id);
-    } else {
-      await addMovieToFavorites(user_id, movie.id);
-    }
-    setIsLiked(!isLiked);
-  };
-
-  const handleRate = async (rating: number) => {
-    if (!movie) return;
-    await addMovieRating(user_id, movie.id, rating);
-    setIsRated(true);
-    setShowRating(false);
-    alert(`Rated ${movie.title} - ${rating} Stars!`);
-  };
 
   if (!movie) return null;
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.9 }}
-          className="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-lg bg-[#181818] text-white no-scrollbar"
-        >
-          <button
+      <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 lg:p-12 overflow-hidden">
+        <motion.div 
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            exit={{ opacity: 0 }} 
             onClick={onClose}
-            className="absolute right-4 top-4 z-50 rounded-full bg-[#181818] p-1 border border-white/10 hover:bg-[#202020]"
-          >
-            <X className="h-6 w-6" />
-          </button>
+            className="absolute inset-0 bg-black/90 backdrop-blur-xl" 
+        />
+        
+        <motion.div
+          initial={{ opacity: 0, y: 100, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.95 }}
+          className="relative w-full max-w-6xl max-h-[95vh] overflow-y-auto rounded-3xl bg-[#0a0a0a] border border-white/10 shadow-2xl no-scrollbar z-10"
+        >
+          <div className="absolute right-6 top-6 z-50 flex gap-3">
+            <button className="h-10 w-10 flex items-center justify-center rounded-full bg-black/40 border border-white/10 backdrop-blur-md hover:bg-white/10 transition">
+              <Share2 className="h-5 w-5" />
+            </button>
+            <button onClick={onClose} className="h-10 w-10 flex items-center justify-center rounded-full bg-[#e50914] text-white shadow-xl hover:scale-110 active:scale-90 transition transform">
+              <X className="h-6 w-6" />
+            </button>
+          </div>
 
-          <div className="relative aspect-video w-full">
-            <img
-              src={formatImageUrl(movie.backdrop_path || movie.poster_path)}
-              className="h-full w-full object-cover"
-              alt={movie.title}
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#181818] via-transparent to-transparent" />
+          <div className="relative aspect-[21/9] w-full min-h-[400px]">
+            <img src={formatImageUrl(movie.backdrop_path || movie.poster_path)} className="h-full w-full object-cover" alt={movie.title} />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-transparent to-transparent" />
             
-            <div className="absolute bottom-10 left-10 space-y-4">
-              <h2 className="text-4xl font-bold drop-shadow-lg">{movie.title}</h2>
-              <div className="flex space-x-2 items-center">
+            <div className="absolute bottom-12 left-12 max-w-3xl space-y-6">
+              <img src="/n-logo.svg" className="h-8 w-8 mb-4 opacity-80" alt="" />
+              <h2 className="text-5xl lg:text-7xl font-black uppercase tracking-tighter drop-shadow-2xl">{movie.title}</h2>
+              <div className="flex gap-4">
                 <button 
-                  onClick={handlePlay}
-                  className="flex items-center gap-x-2 rounded bg-white px-8 py-2 text-black hover:bg-white/80 transition font-bold"
+                  onClick={() => {
+                    addMovieToHistory(user_id, movie.id);
+                    toast.success(`Broadcasting ${movie.title} to your primary display...`);
+                  }}
+                  className="flex items-center gap-3 rounded-full bg-white px-10 py-4 text-black font-black uppercase tracking-tighter text-sm hover:scale-105 transition"
                 >
-                  <Play className="fill-current" /> Play
+                  <Play className="fill-black h-4 w-4" /> Start Watching
                 </button>
-                <div 
-                  onClick={handleFavorite}
-                  className={`flex h-10 w-10 items-center justify-center rounded-full border-2 transition cursor-pointer ${isLiked ? 'bg-[#e50914] border-transparent' : 'border-white/50 bg-[#2a2a2a] hover:border-white'}`}
+                <button 
+                  onClick={() => {
+                    if (isLiked) {
+                        removeMovieFromFavorites(user_id, movie.id);
+                        toast.info("Removed from your secure collection");
+                    } else {
+                        addMovieToFavorites(user_id, movie.id);
+                        toast.success("Added to your secure collection");
+                    }
+                    setIsLiked(!isLiked);
+                  }}
+                  className={`flex h-12 w-12 items-center justify-center rounded-full border transition-all duration-300 ${isLiked ? 'bg-[#e50914] border-transparent text-white' : 'border-white/20 bg-black/40 hover:border-white'}`}
                 >
                   {isLiked ? <Check className="h-6 w-6" /> : <Plus className="h-6 w-6" />}
-                </div>
-                <div className="relative">
-                  <div 
-                    onClick={() => setShowRating(!showRating)}
-                    className={`flex h-10 w-10 items-center justify-center rounded-full border-2 transition cursor-pointer ${isRated ? 'text-yellow-400 border-yellow-400' : 'border-white/50 bg-[#2a2a2a] hover:border-white'}`}
-                  >
-                    <ThumbsUp className="h-6 w-6" />
-                  </div>
-                  {showRating && (
-                    <div className="absolute top-full mt-2 bg-[#2a2a2a] p-2 rounded shadow-xl flex space-x-1 z-50">
-                      {[1,2,3,4,5].map(n => (
-                        <Star key={n} className="h-5 w-5 cursor-pointer hover:text-yellow-400 fill-current text-white/40" onClick={() => handleRate(n)} />
-                      ))}
-                    </div>
-                  )}
-                </div>
+                </button>
               </div>
             </div>
           </div>
 
-          <div className="px-10 py-6 grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="md:col-span-2 space-y-4">
-              <div className="flex items-center space-x-2 text-sm">
-                <span className="text-green-500 font-bold">{Math.round((movie.vote_average || 7.5) * 10)}% Match</span>
-                <span className="text-gray-400">{movie.release_date?.split('-')[0] || "2024"}</span>
-                <span className="border border-white/40 px-1 text-[10px]">HD</span>
-                <span className="text-white/60">Adult 16+</span>
+          <div className="p-12 grid grid-cols-1 lg:grid-cols-12 gap-16">
+            <div className="lg:col-span-8 space-y-8">
+              <div className="flex items-center gap-6 text-sm">
+                <div className="flex items-center gap-1.5 px-3 py-1 bg-green-500/10 text-green-500 font-black rounded-lg border border-green-500/20">
+                  <Star className="h-3 w-3 fill-current" />
+                  98% MATCH
+                </div>
+                <span className="text-white/40 font-bold">{movie.release_date?.split('-')[0]}</span>
+                <span className="border border-white/20 px-2 py-0.5 rounded text-[10px] font-black">ULTRA HD 4K</span>
+                <div className="px-2 py-0.5 bg-white/5 border border-white/10 rounded text-[10px] font-black tracking-widest uppercase">Dolby Atmos</div>
               </div>
-              <p className="text-lg leading-relaxed">{movie.overview || "No overview available for this title."}</p>
+              <p className="text-xl lg:text-2xl font-light text-white/80 leading-relaxed max-w-4xl">{movie.overview}</p>
             </div>
             
-            <div className="space-y-4">
-              <div className="text-sm">
-                <span className="text-gray-500 font-medium">Cast: </span>
-                <span className="text-white hover:underline cursor-pointer">Live Actors...</span>
-              </div>
-              <div className="text-sm">
-                <span className="text-gray-500 font-medium">Genres: </span>
-                <span className="text-white hover:underline cursor-pointer">Action, Sci-Fi...</span>
+            <div className="lg:col-span-4 space-y-6">
+              <div className="space-y-4 pt-1">
+                <div>
+                  <h4 className="text-[10px] uppercase font-black text-white/30 tracking-widest mb-2">Production Cast</h4>
+                  <p className="text-sm text-white/80 font-medium leading-relaxed">Top Real World Actors, TMDB Leads, Featured Talents...</p>
+                </div>
+                <div>
+                    <h4 className="text-[10px] uppercase font-black text-white/30 tracking-widest mb-2">Category Matrix</h4>
+                    <p className="text-sm text-white/80 font-medium">Hyper-Personalized, Algorithm Choice, Top Picks</p>
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="px-10 pb-10">
-            <h3 className="text-2xl font-bold mb-6">More Like This</h3>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {recommendations.length > 0 ? recommendations.map((rec) => (
-                <div key={rec.id} className="bg-[#2f2f2f] rounded overflow-hidden cursor-pointer hover:brightness-110 transition group">
-                  <div className="aspect-video relative">
-                     <img src={formatImageUrl(rec.backdrop_path || rec.poster_path)} className="w-full h-full object-cover" />
-                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition" />
-                     <div className="absolute top-2 right-2 text-xs font-bold bg-black/50 px-2 py-1">HD</div>
+          <div className="px-12 pb-24">
+            <div className="flex items-center justify-between mb-8">
+                <h3 className="text-3xl font-black uppercase tracking-tighter">Engine Predictions</h3>
+                <span className="text-xs text-white/40 font-medium">Based on your activity matrix</span>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-3 gap-6">
+              {recommendations.map((rec) => (
+                <div key={rec.id} className="relative group/rec bg-white/5 rounded-2xl overflow-hidden border border-white/5 hover:border-white/20 transition-all duration-300">
+                  <div className="aspect-video relative overflow-hidden">
+                     <img src={formatImageUrl(rec.backdrop_path || rec.poster_path)} className="w-full h-full object-cover transition-transform duration-500 group-hover/rec:scale-110" alt={rec.title} />
+                     <div className="absolute top-3 right-3 text-[10px] font-black bg-black/60 backdrop-blur-md px-2 py-1 rounded-md border border-white/10 uppercase tracking-widest">Prediction</div>
                   </div>
-                  <div className="p-4 space-y-2">
+                  <div className="p-6 space-y-3">
                     <div className="flex items-center justify-between">
-                       <span className="text-green-500 text-sm font-bold">Match</span>
-                       <Plus className="h-5 w-5 border rounded-full p-1" />
+                       <span className="text-green-500 text-xs font-black tracking-tighter italic">OPTIMAL MATCH</span>
+                       <Plus className="h-6 w-6 border-2 border-white/20 rounded-full p-1 group-hover/rec:bg-white group-hover/rec:text-black transition" />
                     </div>
-                    <h4 className="font-bold text-sm line-clamp-1">{rec.title}</h4>
-                    <p className="text-xs text-gray-400 line-clamp-3">{rec.overview}</p>
+                    <h4 className="font-black text-lg uppercase tracking-tight line-clamp-1">{rec.title}</h4>
+                    <p className="text-xs text-white/40 font-medium line-clamp-3 leading-relaxed">{rec.overview}</p>
                   </div>
                 </div>
-              )) : (
-                <div className="col-span-full py-10 text-center text-white/40">
-                  Calculating personalized recommendations...
-                </div>
-              )}
+              ))}
             </div>
           </div>
         </motion.div>

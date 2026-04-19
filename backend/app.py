@@ -182,9 +182,17 @@ def get_tmdb_movie_details(movie_id):
         response = requests.get(url, timeout=5)
         if response.status_code == 200:
             return jsonify(response.json())
+        # Fallback to local CSV data
+        local_movie = next((m for m in movies_list if m['id'] == movie_id), None)
+        if local_movie:
+            return jsonify(local_movie)
         return jsonify({"error": "Movie not found"}), 404
     except Exception as e:
+        local_movie = next((m for m in movies_list if m['id'] == movie_id), None)
+        if local_movie:
+            return jsonify(local_movie)
         return jsonify({"error": str(e)}), 500
+
 
 @app.route('/api/tmdb/search', methods=['GET'])
 def search_movies():
@@ -212,9 +220,9 @@ def discover_movies():
         response = requests.get(url, timeout=5)
         if response.status_code == 200:
             return jsonify(response.json())
-        return jsonify({"results": []})
+        return jsonify({"results": movies_list[:15]}) # Fallback
     except Exception as e:
-        return jsonify({"results": []})
+        return jsonify({"results": movies_list[:15]})
 
 @app.route('/api/tmdb/discover/tv', methods=['GET'])
 def discover_tv():
@@ -224,9 +232,14 @@ def discover_tv():
         response = requests.get(url, timeout=5)
         if response.status_code == 200:
             return jsonify(response.json())
-        return jsonify({"results": []})
+        # Mocking reality TV for fallback from movies list
+        return jsonify({"results": [
+            {"id": 1, "name": "Love Is Blind", "poster_path": "/xO9uP0eUHeW8Z4884F7fKjXj6Sg.jpg", "overview": "A social experiment..."},
+            {"id": 2, "name": "Survivor", "poster_path": "/iytmG8F2oUpiaaGk7M0kFhA4Iq5.jpg", "overview": "Stranded in a remote location..."}
+        ]})
     except Exception as e:
         return jsonify({"results": []})
+
 
 
 @app.before_request

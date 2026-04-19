@@ -74,6 +74,14 @@ def add_rating(uid, movie_id, rating):
     conn.commit()
     conn.close()
 
+def get_all_ratings():
+    conn = sqlite3.connect(DB_NAME)
+    c = conn.cursor()
+    c.execute("SELECT uid, movie_id, rating FROM ratings")
+    ratings = c.fetchall()
+    conn.close()
+    return [{"uid": r[0], "movie_id": r[1], "rating": r[2]} for r in ratings]
+
 # Favorites
 def add_favorite(uid, movie_id):
     conn = sqlite3.connect(DB_NAME)

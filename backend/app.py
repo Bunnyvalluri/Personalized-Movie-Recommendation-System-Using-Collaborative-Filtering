@@ -10,6 +10,14 @@ import requests
 TMDB_API_KEY = "f3a2b7c9d0e1f8g4h5i6j7k8l9m0n1o2"
 TMDB_BASE_URL = "https://api.themoviedb.org/3"
 
+# Import Surprise library for Collaborative Filtering (SVD)
+try:
+    from surprise import SVD, Dataset, Reader
+    import pandas as pd
+    SURPRISE_INSTALLED = True
+except ImportError:
+    SURPRISE_INSTALLED = False
+
 # Initialize database
 database.init_db()
 
@@ -67,6 +75,50 @@ def recommend():
     
     recommendations = get_recommendations(movie_id)
     return jsonify(recommendations)
+
+@app.route('/api/recommend/hybrid', methods=['GET'])
+def hybrid_recommend():
+    uid = request.args.get('uid', type=str)
+    movie_id = request.args.get('movie_id', type=int)
+    
+    if not uid or not movie_id:
+        return jsonify({'error': 'Please provide uid and movie_id'}), 400
+    
+    # 1. Content-based (genres, overview) via Cosine Similarity
+    cb_recs = get_recommendations(movie_id, top_n=20)
+    
+    # 2. Collaborative Filtering (User ratings) via SVD
+    ratings_data = database.get_all_ratings()
+    
+    final_recs = []
+    
+    if SURPRISE_INSTALLED and len(ratings_data) > 10:
+        # Train SVD Model on the fly using real user data
+        ratings_df = pd.DataFrame(ratings_data)
+        reader = Reader(rating_scale=(1, 5))
+        data = Dataset.load_from_df(ratings_df[['uid', 'movie_id', 'rating']], reader)
+        trainset = data.build_full_trainset()
+        svd_model = SVD()
+        svd_model.fit(trainset)
+        
+        # Predict ratings for the content-based candidates
+        for rec in cb_recs:
+            pred_rating = svd_model.predict(uid, rec['id']).est
+            rec['hybrid_score'] = pred_rating + (rec.get('vote_average', 0) * 0.1) # Trending bump
+            final_recs.append(rec)
+            
+        final_recs.sort(key=lambda x: x['hybrid_score'], reverse=True)
+    else:
+        # Fallback to pure Content-Based + Trending Score if not enough collaborative data
+        for rec in cb_recs:
+            rec['hybrid_score'] = rec.get('vote_average', 0)
+            final_recs.append(rec)
+            
+        final_recs.sort(key=lambda x: x['hybrid_score'], reverse=True)
+        
+    return jsonify(final_recs[:10])
+
+
 
 @app.route('/api/users', methods=['POST'])
 def save_user_info():

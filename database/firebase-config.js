@@ -1,22 +1,33 @@
-/**
- * database/firebase-config.js
- * 
- * We have replaced the complicated Firebase configuration with a local API backend database 
- * so you don't need any Google accounts or 2FA to make your backend work!
- * These functions act exactly like the Firebase ones but hit your Python backend.
- */
+import { initializeApp } from "firebase/app";
+import { getFirestore, collection, doc, setDoc, getDoc, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";
 
-const API_BASE = 'http://localhost:5000/api';
+// Your Firebase configuration
+// IMPORTANT: Please replace these placeholder values with your actual Firebase project keys later!
+const firebaseConfig = {
+  apiKey: "REPLACE_WITH_YOUR_API_KEY",
+  authDomain: "REPLACE_WITH_YOUR_AUTH_DOMAIN",
+  projectId: "REPLACE_WITH_YOUR_PROJECT_ID",
+  storageBucket: "REPLACE_WITH_YOUR_STORAGE_BUCKET",
+  messagingSenderId: "REPLACE_WITH_YOUR_MESSAGING_SENDER_ID",
+  appId: "REPLACE_WITH_YOUR_APP_ID"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// ---------------------------------------------------------
+// Firebase Firestore Database Functions
+// ---------------------------------------------------------
 
 // --- 1. User Info ---
 export const saveUserInfo = async (uid, userData) => {
   try {
-    await fetch(`${API_BASE}/users`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ uid, ...userData })
-    });
-    console.log("User info saved (SQLite)!");
+    await setDoc(doc(db, "users", uid), {
+      ...userData,
+      createdAt: new Date().toISOString()
+    }, { merge: true });
+    console.log("User info saved to Firebase!");
   } catch (error) {
     console.error("Error saving user info: ", error);
   }
@@ -24,11 +35,13 @@ export const saveUserInfo = async (uid, userData) => {
 
 export const getUserInfo = async (uid) => {
   try {
-    const res = await fetch(`${API_BASE}/users/${uid}`);
-    if (res.ok) {
-        return await res.json();
+    const docSnap = await getDoc(doc(db, "users", uid));
+    if (docSnap.exists()) {
+      return docSnap.data();
+    } else {
+      console.log("No such user!");
+      return null;
     }
-    return null;
   } catch (error) {
     console.error("Error getting user info: ", error);
     return null;
@@ -38,12 +51,11 @@ export const getUserInfo = async (uid) => {
 // --- 2. Watch History ---
 export const addToWatchHistory = async (uid, movieId) => {
   try {
-    await fetch(`${API_BASE}/history`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ uid, movieId })
-    });
-    console.log("Watch history updated (SQLite)!");
+    const historyRef = doc(db, "watch_history", uid);
+    await setDoc(historyRef, {
+      history: arrayUnion({ movieId, watchedAt: new Date().toISOString() })
+    }, { merge: true });
+    console.log("Watch history updated in Firebase!");
   } catch (error) {
     console.error("Error updating watch history: ", error);
   }
@@ -52,12 +64,11 @@ export const addToWatchHistory = async (uid, movieId) => {
 // --- 3. Ratings ---
 export const addRating = async (uid, movieId, rating) => {
   try {
-    await fetch(`${API_BASE}/ratings`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ uid, movieId, rating })
-    });
-    console.log("Rating saved (SQLite)!");
+    const ratingsRef = doc(db, "ratings", uid);
+    await setDoc(ratingsRef, {
+      userRatings: arrayUnion({ movieId, rating, ratedAt: new Date().toISOString() })
+    }, { merge: true });
+    console.log("Rating saved to Firebase!");
   } catch (error) {
     console.error("Error saving rating: ", error);
   }
@@ -66,12 +77,11 @@ export const addRating = async (uid, movieId, rating) => {
 // --- 4. Favorite Movies ---
 export const addToFavorites = async (uid, movieId) => {
   try {
-    await fetch(`${API_BASE}/favorites`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ uid, movieId })
-    });
-    console.log("Movie added to favorites (SQLite)!");
+    const favoritesRef = doc(db, "favorites", uid);
+    await setDoc(favoritesRef, {
+      favoriteMovies: arrayUnion(movieId)
+    }, { merge: true });
+    console.log("Movie added to Firebase favorites!");
   } catch (error) {
     console.error("Error adding to favorites: ", error);
   }
@@ -79,13 +89,14 @@ export const addToFavorites = async (uid, movieId) => {
 
 export const removeFromFavorites = async (uid, movieId) => {
   try {
-    await fetch(`${API_BASE}/favorites`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ uid, movieId })
+    const favoritesRef = doc(db, "favorites", uid);
+    await updateDoc(favoritesRef, {
+      favoriteMovies: arrayRemove(movieId)
     });
-    console.log("Movie removed from favorites (SQLite)!");
+    console.log("Movie removed from Firebase favorites!");
   } catch (error) {
     console.error("Error removing from favorites: ", error);
   }
 };
+
+export { db };

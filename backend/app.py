@@ -3,6 +3,11 @@ from flask_cors import CORS
 import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
+import database
+
+# Initialize database
+database.init_db()
+
 
 app = Flask(__name__)
 CORS(app)
@@ -57,6 +62,43 @@ def recommend():
     
     recommendations = get_recommendations(movie_id)
     return jsonify(recommendations)
+
+@app.route('/api/users', methods=['POST'])
+def save_user_info():
+    data = request.json
+    database.save_user(data.get('uid'), data.get('email'), data.get('username'))
+    return jsonify({"message": "User saved"})
+
+@app.route('/api/users/<uid>', methods=['GET'])
+def get_user_info(uid):
+    user = database.get_user(uid)
+    if user:
+        return jsonify(user)
+    return jsonify({"error": "Not found"}), 404
+
+@app.route('/api/history', methods=['POST'])
+def add_history():
+    data = request.json
+    database.add_to_history(data.get('uid'), data.get('movieId'))
+    return jsonify({"message": "History added"})
+
+@app.route('/api/ratings', methods=['POST'])
+def add_user_rating():
+    data = request.json
+    database.add_rating(data.get('uid'), data.get('movieId'), data.get('rating'))
+    return jsonify({"message": "Rating saved"})
+
+@app.route('/api/favorites', methods=['POST'])
+def add_favorite_movie():
+    data = request.json
+    database.add_favorite(data.get('uid'), data.get('movieId'))
+    return jsonify({"message": "Added to favorites"})
+
+@app.route('/api/favorites', methods=['DELETE'])
+def remove_favorite_movie():
+    data = request.json
+    database.remove_favorite(data.get('uid'), data.get('movieId'))
+    return jsonify({"message": "Removed from favorites"})
 
 if __name__ == '__main__':
     app.run(port=5000, debug=True)

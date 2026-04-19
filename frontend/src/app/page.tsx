@@ -28,7 +28,20 @@ export default function Home() {
     const fetchData = async () => {
       try {
         const trending = await getTrending();
-        setTrendingMovies(trending.results);
+        
+        // Pin specific movies requested by user: Interstellar and The Dark Knight
+        const interstellarRes = await fetch(`http://127.0.0.1:5000/api/tmdb/movie/157336`);
+        const darkKnightRes = await fetch(`http://127.0.0.1:5000/api/tmdb/movie/155`);
+        
+        const interstellar = await interstellarRes.json();
+        const darkKnight = await darkKnightRes.json();
+
+        // Combine and filter out duplicates
+        const combined = [interstellar, darkKnight, ...trending.results].filter(
+          (movie, index, self) => index === self.findIndex((m) => m.id === movie.id)
+        );
+
+        setTrendingMovies(combined);
       } catch (error) {
         console.error('Failed to fetch data:', error);
       } finally {
@@ -37,6 +50,7 @@ export default function Home() {
     };
     fetchData();
   }, []);
+
 
   const handleSearch = (results: Movie[]) => {
     setSearchResults(results);

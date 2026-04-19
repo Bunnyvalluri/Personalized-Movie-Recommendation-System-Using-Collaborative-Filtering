@@ -102,7 +102,8 @@ export default function Home() {
             <MovieRow title="Premium Drama" movies={dramaMovies} onMovieClick={setSelectedMovie} />
             <MovieRow title="Anime Collection" movies={animeMovies} onMovieClick={setSelectedMovie} />
             <MovieRow title="Escapist Reality TV" movies={realityTV} onMovieClick={setSelectedMovie} />
-            <MovieRow title="Horror Based on Books" movies={horrorBooks} onMovieClick={setSelectedMovie} />
+            <MovieRow title="Literary Horror Masterpieces" movies={horrorBooks} onMovieClick={setSelectedMovie} />
+
           </div>
         </>
       ) : (

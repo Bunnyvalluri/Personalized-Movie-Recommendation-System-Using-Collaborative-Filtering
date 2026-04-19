@@ -220,9 +220,15 @@ def discover_movies():
         response = requests.get(url, timeout=5)
         if response.status_code == 200:
             return jsonify(response.json())
-        return jsonify({"results": movies_list[:15]}) # Fallback
+        # Fallback for Horror/Books or Discovery
+        if genre_id == "27":
+             horror_ids = [694, 346364, 539, 18, 274]
+             subset = [m for m in movies_list if m['id'] in horror_ids]
+             return jsonify({"results": subset if subset else movies_list[:15]})
+        return jsonify({"results": movies_list[:15]})
     except Exception as e:
         return jsonify({"results": movies_list[:15]})
+
 
 @app.route('/api/tmdb/discover/tv', methods=['GET'])
 def discover_tv():

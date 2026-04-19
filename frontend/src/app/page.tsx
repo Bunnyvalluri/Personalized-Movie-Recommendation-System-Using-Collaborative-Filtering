@@ -36,10 +36,14 @@ export default function Home() {
         const interstellar = await interstellarRes.json();
         const darkKnight = await darkKnightRes.json();
 
-        // Combine and filter out duplicates
-        const combined = [interstellar, darkKnight, ...trending.results].filter(
-          (movie, index, self) => index === self.findIndex((m) => m.id === movie.id)
-        );
+        // Combine and filter out duplicates, ensuring every item has an id
+        const combined = [
+          interstellar.id ? interstellar : null, 
+          darkKnight.id ? darkKnight : null, 
+          ...(trending.results || [])
+        ].filter((movie): movie is Movie => movie !== null && movie !== undefined && movie.id !== undefined)
+         .filter((movie, index, self) => index === self.findIndex((m) => m.id === movie.id));
+
 
         setTrendingMovies(combined);
       } catch (error) {

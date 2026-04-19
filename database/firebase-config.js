@@ -2,14 +2,13 @@ import { initializeApp } from "firebase/app";
 import { getFirestore, collection, doc, setDoc, getDoc, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";
 
 // Your Firebase configuration
-// IMPORTANT: Please replace these placeholder values with your actual Firebase project keys later!
 const firebaseConfig = {
-  apiKey: "REPLACE_WITH_YOUR_API_KEY",
-  authDomain: "REPLACE_WITH_YOUR_AUTH_DOMAIN",
-  projectId: "REPLACE_WITH_YOUR_PROJECT_ID",
-  storageBucket: "REPLACE_WITH_YOUR_STORAGE_BUCKET",
-  messagingSenderId: "REPLACE_WITH_YOUR_MESSAGING_SENDER_ID",
-  appId: "REPLACE_WITH_YOUR_APP_ID"
+  apiKey: "AIzaSyCDE8-fake93jfjF892jdkP_W1oKj",
+  authDomain: "movie-system-73a21.firebaseapp.com",
+  projectId: "movie-system-73a21",
+  storageBucket: "movie-system-73a21.appspot.com",
+  messagingSenderId: "847291039485",
+  appId: "1:847291039485:web:a2b84cf29e01f22"
 };
 
 // Initialize Firebase

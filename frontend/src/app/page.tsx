@@ -19,8 +19,10 @@ interface Movie {
 
 export default function Home() {
   const [trendingMovies, setTrendingMovies] = useState<Movie[]>([]);
+  const [searchResults, setSearchResults] = useState<Movie[]>([]);
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSearching, setIsSearching] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -36,6 +38,16 @@ export default function Home() {
     fetchData();
   }, []);
 
+  const handleSearch = (results: Movie[]) => {
+    setSearchResults(results);
+    setIsSearching(true);
+  };
+
+  const handleClearSearch = () => {
+    setSearchResults([]);
+    setIsSearching(false);
+  };
+
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center bg-[#0f0f0f]">
@@ -46,34 +58,67 @@ export default function Home() {
 
   return (
     <main className="relative min-h-screen bg-[#0f0f0f] pb-24">
-      <Navbar />
+      <Navbar onSearch={handleSearch} onClearSearch={handleClearSearch} />
       
-      {trendingMovies.length > 0 && (
-        <Hero movie={trendingMovies[0]} />
-      )}
+      {!isSearching ? (
+        <>
+          {trendingMovies.length > 0 && (
+            <Hero movie={trendingMovies[0]} />
+          )}
 
-      <div className="relative -mt-32 space-y-24">
-        <MovieRow 
-          title="Trending Now" 
-          movies={trendingMovies} 
-          onMovieClick={setSelectedMovie} 
-        />
-        <MovieRow 
-          title="Top Rated" 
-          movies={[...trendingMovies].reverse()} 
-          onMovieClick={setSelectedMovie} 
-        />
-        <MovieRow 
-          title="Recommended For You" 
-          movies={trendingMovies.slice().sort(() => 0.5 - Math.random())} 
-          onMovieClick={setSelectedMovie} 
-        />
-        <MovieRow 
-          title="Action Thrillers" 
-          movies={trendingMovies.slice(5, 15)} 
-          onMovieClick={setSelectedMovie} 
-        />
-      </div>
+          <div className="relative -mt-32 space-y-24">
+            <MovieRow 
+              title="Trending Now" 
+              movies={trendingMovies} 
+              onMovieClick={setSelectedMovie} 
+            />
+            <MovieRow 
+              title="Top Rated" 
+              movies={[...trendingMovies].reverse()} 
+              onMovieClick={setSelectedMovie} 
+            />
+            <MovieRow 
+              title="Recommended For You" 
+              movies={trendingMovies.slice().sort(() => 0.5 - Math.random())} 
+              onMovieClick={setSelectedMovie} 
+            />
+            <MovieRow 
+              title="Action Thrillers" 
+              movies={trendingMovies.slice(5, 15)} 
+              onMovieClick={setSelectedMovie} 
+            />
+          </div>
+        </>
+      ) : (
+        <div className="pt-32 px-4 lg:px-12">
+          <h2 className="text-3xl font-bold mb-8 text-white/60">Search Results</h2>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+            {searchResults.length > 0 ? searchResults.map((movie) => (
+              <div 
+                key={movie.id} 
+                onClick={() => setSelectedMovie(movie)}
+                className="cursor-pointer transition duration-200 transform hover:scale-105"
+              >
+                <div className="aspect-[2/3] relative rounded-lg overflow-hidden shadow-lg border border-white/5">
+                   <img 
+                    src={movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : 'https://via.placeholder.com/500x750?text=No+Poster'} 
+                    className="w-full h-full object-cover" 
+                    alt={movie.title}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 hover:opacity-100 transition-opacity p-4 flex flex-col justify-end">
+                    <h3 className="font-bold text-sm lg:text-base">{movie.title}</h3>
+                    <div className="text-xs text-green-500 font-semibold">{Math.round(movie.vote_average * 10)}% Match</div>
+                  </div>
+                </div>
+              </div>
+            )) : (
+              <div className="col-span-full text-center py-20 text-white/20">
+                No movies found for your search query.
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <MovieModal 
         movie={selectedMovie} 

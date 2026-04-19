@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = 'http://127.0.0.1:5000/api';
 const TMDB_IMAGE_BASE = 'https://image.tmdb.org/t/p/original';
 
 const api = axios.create({
@@ -23,6 +23,32 @@ export const getHybridRecommendations = async (uid: string, movieId: number) => 
   });
   return data;
 };
+
+export const searchMovies = async (query: string) => {
+  const { data } = await api.get(`/tmdb/search`, {
+    params: { query },
+  });
+  return data;
+};
+
+// --- User Interaction Actions ---
+
+export const addMovieToFavorites = async (uid: string, movieId: number) => {
+  await api.post('/favorites', { uid, movieId });
+};
+
+export const removeMovieFromFavorites = async (uid: string, movieId: number) => {
+  await api.delete('/favorites', { data: { uid, movieId } });
+};
+
+export const addMovieRating = async (uid: string, movieId: number, rating: number) => {
+  await api.post('/ratings', { uid, movieId, rating });
+};
+
+export const addMovieToHistory = async (uid: string, movieId: number) => {
+  await api.post('/history', { uid, movieId });
+};
+
 
 export const formatImageUrl = (path: string) => `${TMDB_IMAGE_BASE}${path}`;
 

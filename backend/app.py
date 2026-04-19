@@ -163,20 +163,49 @@ def remove_favorite_movie():
 
 @app.route('/api/tmdb/trending', methods=['GET'])
 def get_trending_movies():
-    url = f"{TMDB_BASE_URL}/movie/popular?api_key={TMDB_API_KEY}"
-    response = requests.get(url)
-    if response.status_code == 200:
-        return jsonify(response.json())
-    return jsonify({"error": "Failed to fetch from TMDB"}), response.status_code
+    try:
+        url = f"{TMDB_BASE_URL}/movie/popular?api_key={TMDB_API_KEY}"
+        response = requests.get(url, timeout=5)
+        if response.status_code == 200:
+            return jsonify(response.json())
+        else:
+            print(f"TMDB Error: {response.status_code}")
+            return jsonify({"results": movies_list[:20]}) # Fallback to local CSV data
+    except Exception as e:
+        print(f"TMDB Connection Failed: {e}")
+        return jsonify({"results": movies_list[:20]})
 
 @app.route('/api/tmdb/movie/<int:movie_id>', methods=['GET'])
 def get_tmdb_movie_details(movie_id):
-    url = f"{TMDB_BASE_URL}/movie/{movie_id}?api_key={TMDB_API_KEY}"
-    response = requests.get(url)
-    if response.status_code == 200:
-        return jsonify(response.json())
-    return jsonify({"error": "Failed to fetch from TMDB"}), response.status_code
+    try:
+        url = f"{TMDB_BASE_URL}/movie/{movie_id}?api_key={TMDB_API_KEY}"
+        response = requests.get(url, timeout=5)
+        if response.status_code == 200:
+            return jsonify(response.json())
+        return jsonify({"error": "Movie not found"}), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
+@app.route('/api/tmdb/search', methods=['GET'])
+def search_movies():
+    query = request.args.get('query', '')
+    if not query:
+        return jsonify({"results": []})
+    try:
+        url = f"{TMDB_BASE_URL}/search/movie?api_key={TMDB_API_KEY}&query={query}"
+        response = requests.get(url, timeout=5)
+        if response.status_code == 200:
+            return jsonify(response.json())
+        return jsonify({"results": []})
+    except Exception as e:
+        return jsonify({"results": []})
+
+
+
+
+@app.before_request
+def log_request_info():
+    print(f"Request: {request.method} {request.url}")
 
 if __name__ == '__main__':
-    app.run(port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=False)

@@ -220,6 +220,18 @@ def discover_movies():
         response = requests.get(url, timeout=5)
         if response.status_code == 200:
             return jsonify(response.json())
+        # Fallback for Anime or Discovery
+        if genre_id == "16":
+             anime_titles = ["Spy x Family", "Vinland Saga", "Monster", "Hajime no Ippo", "Spirited Away"]
+             subset = [m for m in movies_list if m['title'] in anime_titles]
+             # Add status tags as seen in user screenshot
+             for i, m in enumerate(subset):
+                 if i == 0: m['status_tag'] = "NEW EPISODE"
+                 elif i == 1: m['status_tag'] = "RECENTLY ADDED"
+                 elif i == 2: m['status_tag'] = "WEEKLY"
+                 else: m['status_tag'] = "WATCH NOW"
+             return jsonify({"results": subset if subset else movies_list[:15]})
+        
         # Fallback for Horror/Books or Discovery
         if genre_id == "27":
              horror_ids = [694, 346364, 539, 18, 274]
@@ -253,4 +265,4 @@ def log_request_info():
     print(f"Request: {request.method} {request.url}")
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=False)
+    app.run(host='0.0.0.0', port=5005, debug=True, threaded=True)

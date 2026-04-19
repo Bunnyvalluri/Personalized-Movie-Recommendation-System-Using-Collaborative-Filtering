@@ -200,10 +200,15 @@ def search_movies():
     except Exception as e:
         return jsonify({"results": []})
 
-@app.route('/api/tmdb/genre/<int:genre_id>', methods=['GET'])
-def get_movies_by_genre(genre_id):
+
+
+
+@app.route('/api/tmdb/discover', methods=['GET'])
+def discover_movies():
+    genre_id = request.args.get('with_genres', '')
+    keyword_id = request.args.get('with_keywords', '')
     try:
-        url = f"{TMDB_BASE_URL}/discover/movie?api_key={TMDB_API_KEY}&with_genres={genre_id}"
+        url = f"{TMDB_BASE_URL}/discover/movie?api_key={TMDB_API_KEY}&with_genres={genre_id}&with_keywords={keyword_id}"
         response = requests.get(url, timeout=5)
         if response.status_code == 200:
             return jsonify(response.json())
@@ -211,8 +216,17 @@ def get_movies_by_genre(genre_id):
     except Exception as e:
         return jsonify({"results": []})
 
-
-
+@app.route('/api/tmdb/discover/tv', methods=['GET'])
+def discover_tv():
+    genre_id = request.args.get('with_genres', '')
+    try:
+        url = f"{TMDB_BASE_URL}/discover/tv?api_key={TMDB_API_KEY}&with_genres={genre_id}"
+        response = requests.get(url, timeout=5)
+        if response.status_code == 200:
+            return jsonify(response.json())
+        return jsonify({"results": []})
+    except Exception as e:
+        return jsonify({"results": []})
 
 
 @app.before_request

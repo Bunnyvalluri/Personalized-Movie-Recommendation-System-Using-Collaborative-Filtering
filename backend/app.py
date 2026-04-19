@@ -200,6 +200,18 @@ def search_movies():
     except Exception as e:
         return jsonify({"results": []})
 
+@app.route('/api/tmdb/genre/<int:genre_id>', methods=['GET'])
+def get_movies_by_genre(genre_id):
+    try:
+        url = f"{TMDB_BASE_URL}/discover/movie?api_key={TMDB_API_KEY}&with_genres={genre_id}"
+        response = requests.get(url, timeout=5)
+        if response.status_code == 200:
+            return jsonify(response.json())
+        return jsonify({"results": []})
+    except Exception as e:
+        return jsonify({"results": []})
+
+
 
 
 

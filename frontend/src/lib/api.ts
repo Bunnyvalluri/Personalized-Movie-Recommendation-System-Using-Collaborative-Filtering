@@ -1,10 +1,13 @@
 import axios from 'axios';
 
-const API_BASE = 'http://localhost:5005/api';
+export const API_BASE = 'http://127.0.0.1:5000/api';
 const TMDB_IMAGE_BASE = 'https://image.tmdb.org/t/p/original';
 
 const api = axios.create({
   baseURL: API_BASE,
+  headers: {
+    'Content-Type': 'application/json',
+  },
 });
 
 export const getTrending = async () => {
@@ -49,7 +52,10 @@ export const addMovieToHistory = async (uid: string, movieId: number) => {
   await api.post('/history', { uid, movieId });
 };
 
-
-export const formatImageUrl = (path: string) => `${TMDB_IMAGE_BASE}${path}`;
+export const formatImageUrl = (path: string) => {
+  if (!path) return 'https://via.placeholder.com/1920x1080?text=No+Image';
+  if (path.startsWith('http')) return path;
+  return `${TMDB_IMAGE_BASE}${path}`;
+};
 
 export default api;

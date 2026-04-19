@@ -32,8 +32,9 @@ export default function Hero({ movie }: { movie: any }) {
           </div>
 
           <h1 className="text-5xl md:text-7xl lg:text-8xl font-black tracking-tight leading-[0.9] drop-shadow-2xl">
-            {movie?.title?.toUpperCase() || "FEATURED SELECTION"}
+            {(movie?.title || movie?.name)?.toUpperCase() || "FEATURED SELECTION"}
           </h1>
+
 
           
           <p className="line-clamp-3 text-lg md:text-xl text-white/70 max-w-xl font-light leading-relaxed">

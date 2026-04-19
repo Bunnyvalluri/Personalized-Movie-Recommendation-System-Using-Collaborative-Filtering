@@ -7,11 +7,11 @@ import MovieRow from '@/components/MovieRow';
 import MovieModal from '@/components/MovieModal';
 import SkeletonRow from '@/components/SkeletonRow';
 import Footer from '@/components/Footer';
-import { getTrending } from '@/lib/api';
+import { getTrending, API_BASE } from '@/lib/api';
 
 interface Movie {
   id: number;
-  title: string;
+  title?: string;
   name?: string; 
   overview: string;
   backdrop_path: string;
@@ -37,17 +37,18 @@ export default function Home() {
       try {
         const fetchJSON = async (url: string) => {
             const res = await fetch(url);
+            if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
             return res.json();
         };
 
         const [trending, interstellar, darkKnight, drama, anime, reality, horror] = await Promise.all([
             getTrending(),
-            fetchJSON(`http://127.0.0.1:5000/api/tmdb/movie/157336`),
-            fetchJSON(`http://127.0.0.1:5000/api/tmdb/movie/155`),
-            fetchJSON(`http://127.0.0.1:5000/api/tmdb/discover?with_genres=18`),
-            fetchJSON(`http://127.0.0.1:5000/api/tmdb/discover?with_genres=16`),
-            fetchJSON(`http://127.0.0.1:5000/api/tmdb/discover/tv?with_genres=10764`),
-            fetchJSON(`http://127.0.0.1:5000/api/tmdb/discover?with_genres=27&with_keywords=818`)
+            fetchJSON(`${API_BASE}/tmdb/movie/157336`),
+            fetchJSON(`${API_BASE}/tmdb/movie/155`),
+            fetchJSON(`${API_BASE}/tmdb/discover?with_genres=18`),
+            fetchJSON(`${API_BASE}/tmdb/discover?with_genres=16`),
+            fetchJSON(`${API_BASE}/tmdb/discover/tv?with_genres=10764`),
+            fetchJSON(`${API_BASE}/tmdb/discover?with_genres=27&with_keywords=818`)
         ]);
 
         const combinedTrending = [
@@ -64,10 +65,9 @@ export default function Home() {
         setHorrorBooks(horror.results || []);
 
       } catch (error) {
-        console.error('Failed to fetch data:', error);
+        console.error('Data acquisition error:', error);
       } finally {
-         // Artificial delay for professional skeleton feel
-         setTimeout(() => setIsLoading(false), 800);
+        setTimeout(() => setIsLoading(false), 800);
       }
     };
     fetchData();
@@ -112,15 +112,15 @@ export default function Home() {
       ) : (
         <div className="pt-32 px-6 lg:px-16 max-w-[1920px] mx-auto min-h-screen">
           <div className="flex items-center justify-between mb-12">
-             <h2 className="text-4xl font-black uppercase tracking-tighter">Search Results</h2>
-             <span className="text-white/40 text-sm font-medium">{searchResults.length} matches found</span>
+             <h2 className="text-4xl font-black uppercase tracking-tighter text-white/90">Search Results</h2>
+             <span className="text-[#e50914] text-xs font-black tracking-widest uppercase">{searchResults.length} NODES IDENTIFIED</span>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-8">
             {searchResults.length > 0 ? searchResults.map((movie) => (
               <div key={movie.id} onClick={() => setSelectedMovie(movie)} className="cursor-pointer group">
                 <div className="aspect-[2/3] relative rounded-2xl overflow-hidden border border-white/5 shadow-2xl group-hover:scale-105 transition-all duration-500 group-hover:shadow-[#e50914]/10">
                    <img 
-                    src={movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : 'https://via.placeholder.com/500x750?text=No+Poster'} 
+                    src={movie.poster_path ? (movie.poster_path.startsWith('http') ? movie.poster_path : `https://image.tmdb.org/t/p/w500${movie.poster_path}`) : 'https://via.placeholder.com/500x750?text=No+Poster'} 
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
                     alt={movie.title || movie.name}
                   />

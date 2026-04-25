@@ -89,119 +89,199 @@ st.set_page_config(layout="wide", page_title="Cinephile Recommender")
 # Injecting Netflix-style Custom CSS
 st.markdown("""
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap');
+
 /* Hide Streamlit header (Star icon), menu, and footer */
 header {visibility: hidden;}
 #MainMenu {visibility: hidden;}
 footer {visibility: hidden;}
 
-/* Netflix Background and Font */
+/* Cinematic Radial Background */
 .stApp {
-    background-color: #141414;
+    background: radial-gradient(circle at top, #2b0000 0%, #0a0a0a 50%, #000000 100%);
+    background-attachment: fixed;
     color: #e5e5e5;
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: 'Outfit', sans-serif !important;
 }
-/* Title Styling */
-h1 {
-    color: #e50914 !important;
+
+/* Custom Hero Header */
+.hero-title {
+    font-family: 'Outfit', sans-serif;
+    color: #e50914;
     font-weight: 800;
-    font-size: 3rem !important;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-    margin-bottom: 30px !important;
+    font-size: 4.5rem;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+    text-shadow: 0 0 30px rgba(229,9,20,0.5);
 }
-/* Dropdown text color */
+.hero-subtitle {
+    text-align: center;
+    color: #a3a3a3;
+    font-size: 1.2rem;
+    margin-bottom: 3rem;
+    font-weight: 300;
+    letter-spacing: 1px;
+}
+
+/* Dropdown and Form Styling */
 .stSelectbox label {
     color: #fff !important;
     font-size: 1.1rem;
+    text-align: center;
+    width: 100%;
 }
-/* Netflix Button */
+div[data-baseweb="select"] > div {
+    background-color: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: white;
+    border-radius: 8px;
+    transition: border-color 0.3s;
+}
+div[data-baseweb="select"] > div:hover {
+    border-color: #e50914;
+}
+
+/* Gradient Netflix Button */
+.stButton {
+    display: flex;
+    justify-content: center;
+    margin-top: 25px;
+}
 .stButton>button {
-    background-color: #e50914 !important;
+    background: linear-gradient(90deg, #e50914 0%, #b8000b 100%) !important;
     color: white !important;
     border: none !important;
-    padding: 10px 30px !important;
-    border-radius: 4px !important;
-    font-weight: bold !important;
-    font-size: 1.1rem !important;
-    transition: background-color 0.2s, transform 0.2s !important;
+    padding: 12px 40px !important;
+    border-radius: 30px !important;
+    font-weight: 600 !important;
+    font-size: 1.2rem !important;
+    box-shadow: 0 4px 15px rgba(229,9,20,0.4) !important;
+    transition: all 0.3s ease !important;
 }
 .stButton>button:hover {
-    background-color: #f40612 !important;
-    transform: scale(1.05) !important;
+    transform: scale(1.05) translateY(-2px) !important;
+    box-shadow: 0 8px 25px rgba(229,9,20,0.6) !important;
 }
-/* Netflix Movie Row */
+
+/* Movie Row Container */
 .movie-row {
     display: flex;
-    gap: 25px;
-    padding: 30px 10px;
+    gap: 30px;
+    padding: 40px 10px;
     flex-wrap: wrap;
     justify-content: center;
 }
-/* Movie Card with Hover Animation */
+
+/* Fade-in Entrance Animation */
+@keyframes fadeInUp {
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Glassmorphism Movie Card */
 .movie-card {
     flex: 0 0 auto;
     width: 220px;
-    background-color: #181818;
-    border-radius: 8px;
+    background: rgba(24, 24, 24, 0.4);
+    backdrop-filter: blur(15px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 16px;
     overflow: hidden;
-    transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 0.4s ease;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
     cursor: pointer;
+    opacity: 0;
+    transform: translateY(30px);
+    animation: fadeInUp 0.6s ease forwards;
 }
+
+/* Staggered Card Animation Delays */
+.movie-card:nth-child(1) { animation-delay: 0.1s; }
+.movie-card:nth-child(2) { animation-delay: 0.2s; }
+.movie-card:nth-child(3) { animation-delay: 0.3s; }
+.movie-card:nth-child(4) { animation-delay: 0.4s; }
+.movie-card:nth-child(5) { animation-delay: 0.5s; }
+
 .movie-card:hover {
-    transform: scale(1.1) translateY(-10px);
-    box-shadow: 0 15px 30px rgba(0,0,0,0.8);
+    transform: scale(1.08) translateY(-10px) !important;
+    box-shadow: 0 20px 40px rgba(229, 9, 20, 0.3);
+    border-color: rgba(229, 9, 20, 0.5);
     z-index: 10;
 }
+
 .movie-poster {
     width: 100%;
     height: 330px;
     object-fit: cover;
-    border-bottom: 2px solid #333;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
 }
+
 .movie-info {
     padding: 15px;
     text-align: center;
 }
+
 .movie-title {
     font-size: 16px;
-    font-weight: bold;
+    font-weight: 600;
     color: #fff;
     margin-bottom: 8px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
+
 .movie-meta {
     font-size: 13px;
     color: #a3a3a3;
-    margin-bottom: 10px;
+    margin-bottom: 15px;
 }
+
 .rating-star {
     color: #e50914;
-    font-weight: bold;
+    font-weight: 800;
 }
-/* Watch Now Button */
+
+/* Gradient Watch Now Button */
 .watch-btn {
     display: block;
-    margin: 10px auto 0 auto;
-    padding: 8px;
-    background-color: rgba(229, 9, 20, 0.9);
+    margin: 0 auto;
+    padding: 10px;
+    background: linear-gradient(90deg, #e50914 0%, #b8000b 100%);
     color: white !important;
     text-align: center;
-    border-radius: 4px;
+    border-radius: 8px;
     text-decoration: none !important;
-    font-weight: bold;
+    font-weight: 600;
     font-size: 14px;
-    transition: background-color 0.2s, transform 0.2s;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(229,9,20,0.3);
 }
 .watch-btn:hover {
-    background-color: #f40612;
+    background: linear-gradient(90deg, #f40612 0%, #e50914 100%);
     transform: scale(1.05);
+    box-shadow: 0 6px 20px rgba(229,9,20,0.6);
+}
+
+/* Recommendations Title */
+.section-title {
+    color: white;
+    text-align: center;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 300;
+    font-size: 2.2rem;
+    margin-top: 40px;
+    margin-bottom: 10px;
 }
 </style>
 """, unsafe_allow_html=True)
 
-st.title('Cinephile AI Recommender')
+st.markdown("""
+<div class="hero-title">CINEPHILE AI</div>
+<div class="hero-subtitle">Discover and stream your next favorite movie instantly.</div>
+""", unsafe_allow_html=True)
 
 # Load the data files
 try:
@@ -234,7 +314,7 @@ if st.button('Show Recommendation'):
         recommended_movie_names, recommended_movie_posters, recommended_movie_years, recommended_movie_ratings, recommended_movie_ids = recommend(selected_movie)
     
     if recommended_movie_names:
-        st.markdown("<h3 style='color: white; margin-top: 20px;'>Top Picks for You</h3>", unsafe_allow_html=True)
+        st.markdown("<div class='section-title'>Top Picks For You</div>", unsafe_allow_html=True)
         
         # Build HTML for the movie row
         html_content = '<div class="movie-row">'

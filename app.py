@@ -14,6 +14,12 @@ session = requests.Session()
 retries = Retry(total=1, backoff_factor=0.1)
 session.mount('https://', HTTPAdapter(max_retries=retries))
 
+# ─── SPEED: cache all TMDB calls so repeat visits are instant ────────────────
+# fetch_movie_details is cached per movie_id for 1 hour
+# fetch_trending is cached for 30 minutes
+TMDB_CACHE_TTL   = 3600   # 1 hour for movie details
+TRENDING_TTL     = 1800   # 30 minutes for trending list
+
 
 TMDB_KEY = "8265bd1679663a7ea12ac168da84d2e8"
 HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
@@ -28,7 +34,7 @@ def tmdb_get(path):
 
     # Try proxy first (works when TMDB is ISP-blocked)
     try:
-        r = session.get(proxy, headers=HEADERS, timeout=10)
+        r = session.get(proxy, headers=HEADERS, timeout=6)  # was 10s – fail faster
         if r.status_code == 200:
             data = r.json()
             if data and not data.get('error'):
@@ -48,8 +54,11 @@ def tmdb_get(path):
 
 
 
+@st.cache_data(ttl=TMDB_CACHE_TTL, show_spinner=False)
 def fetch_movie_details(movie_id):
-    """Fetches poster, trailer, overview, and genres from TMDB API."""
+    """Fetches poster, trailer, overview, and genres from TMDB API.
+    Result is cached per movie_id for 1 hour — repeat visits are instant.
+    """
     details = {
         'poster': "https://placehold.co/500x750/333/FFFFFF?text=No+Poster",
         'trailer': None,
@@ -62,7 +71,8 @@ def fetch_movie_details(movie_id):
         return details
 
     if data.get('poster_path'):
-        details['poster'] = "https://media.themoviedb.org/t/p/w500" + data['poster_path']
+        # w342 is ~40% smaller than w500 — loads faster at card size
+        details['poster'] = "https://media.themoviedb.org/t/p/w342" + data['poster_path']
     if data.get('overview'):
         overview = data['overview']
         details['overview'] = overview[:110] + '...' if len(overview) > 110 else overview
@@ -77,8 +87,9 @@ def fetch_movie_details(movie_id):
     return details
 
 
+@st.cache_data(ttl=TRENDING_TTL, show_spinner=False)
 def fetch_trending():
-    """Fetches the top 5 trending movies of the week from TMDB."""
+    """Fetches the top 5 trending movies of the week. Cached for 30 minutes."""
     data = tmdb_get("trending/movie/week?")
     return data.get('results', [])[:5] if data else []
 
@@ -747,20 +758,25 @@ st.markdown("""
 <div class="hero-subtitle">Stream · Discover · Experience</div>
 """, unsafe_allow_html=True)
 
-# ─── LOAD DATA ────────────────────────────────────────────────────────────────
-try:
+# ─── LOAD DATA (cached – loads once per server session) ───────────────────────
+@st.cache_resource(show_spinner=False)
+def load_data():
     movies_dict = pickle.load(open('artifacts/movie_dict.pkl', 'rb'))
     movies = pd.DataFrame(movies_dict)
 
     if not os.path.exists('artifacts/similarity.pkl'):
-        with st.spinner("Initializing AI Model... (First time only, please wait)"):
-            cv = CountVectorizer(max_features=5000, stop_words='english')
-            vectors = cv.fit_transform(movies['tags']).toarray()
-            similarity = cosine_similarity(vectors)
-            pickle.dump(similarity, open('artifacts/similarity.pkl', 'wb'))
+        cv = CountVectorizer(max_features=5000, stop_words='english')
+        vectors = cv.fit_transform(movies['tags']).toarray()
+        similarity = cosine_similarity(vectors)
+        pickle.dump(similarity, open('artifacts/similarity.pkl', 'wb'))
     else:
         similarity = pickle.load(open('artifacts/similarity.pkl', 'rb'))
 
+    return movies, similarity
+
+try:
+    with st.spinner("Loading iBOMMA Rahul… ⚡"):
+        movies, similarity = load_data()
 except FileNotFoundError:
     st.error("❌ Core dataset 'movie_dict.pkl' not found in the 'artifacts/' folder.")
     st.stop()
@@ -839,16 +855,16 @@ if st.button('🎬 Show Recommendations'):
     else:
         st.warning("No recommendations found. Try another movie!")
 else:
-    # On load, show Trending movies
-    with st.spinner('Loading Trending Movies...'):
+    # On load, show Trending movies (cached after first load – instant on refresh)
+    with st.spinner('⚡ Fetching trending movies…'):
         trending = fetch_trending()
         if trending:
             t_ids = [str(m['id']) for m in trending]
             with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
                 t_details = list(executor.map(fetch_movie_details, t_ids))
 
-            t_names = [m.get('title', 'Unknown') for m in trending]
-            t_years = [safe_year(m.get('release_date', '')) for m in trending]
+            t_names   = [m.get('title', 'Unknown') for m in trending]
+            t_years   = [safe_year(m.get('release_date', '')) for m in trending]
             t_ratings = [safe_rating(m.get('vote_average', 0)) for m in trending]
 
             st.markdown("<div class='section-title'>🔥 Trending This Week</div>", unsafe_allow_html=True)

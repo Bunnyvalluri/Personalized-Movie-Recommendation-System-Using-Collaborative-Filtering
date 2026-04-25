@@ -149,12 +149,25 @@ if "watch" in st.query_params:
     movie_id = st.query_params.get("watch", "")
     movie_title = st.query_params.get("title", "Movie")
 
-    st.markdown(f"""
+    import streamlit.components.v1 as components
+    
+    # Hide Streamlit's default margins and navbar when watching a movie
+    st.markdown("""
+    <style>
+    .stApp > header {display:none;}
+    .block-container {padding: 0 !important; max-width: 100% !important;}
+    iframe {border: none;}
+    </style>
+    """, unsafe_allow_html=True)
+
+    player_html = f"""
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap');
     *, *::before, *::after {{ box-sizing: border-box; margin: 0; padding: 0; }}
-    header {{visibility: hidden;}} #MainMenu {{visibility: hidden;}} footer {{visibility: hidden;}}
-    .stApp {{ background: #050505; font-family: 'Outfit', sans-serif !important; min-height: 100vh; }}
+    body {{ background: #050505; font-family: 'Outfit', sans-serif !important; min-height: 100vh; color: #fff; margin: 0; overflow-x: hidden; }}
     .p-navbar {{
         display: flex; align-items: center; justify-content: space-between;
         padding: 14px 32px; background: rgba(0,0,0,0.88);
@@ -278,10 +291,13 @@ if "watch" in st.query_params:
         #player-frame {{ height:220px; }}
     }}
     </style>
+    </head>
+    <body>
 
     <nav class="p-navbar">
         <div class="p-logo">iBOMMA RAHUL</div>
-        <a class="p-back" href="/">← Back to Home</a>
+        <!-- Use JS to navigate the parent window to avoid nesting apps in the iframe -->
+        <a class="p-back" onclick="window.parent.location.href='/?home=1'">← Back to Home</a>
     </nav>
 
     <div class="p-title-strip">
@@ -455,7 +471,11 @@ if "watch" in st.query_params:
         startTimer();
     }}, 80);
     </script>
-    """, unsafe_allow_html=True)
+    </body>
+    </html>
+    """
+    
+    components.html(player_html, height=1200, scrolling=True)
     st.stop()
 
 

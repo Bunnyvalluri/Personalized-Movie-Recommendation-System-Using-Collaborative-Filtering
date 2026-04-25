@@ -141,107 +141,194 @@ if "watch" in st.query_params:
     st.markdown(f"""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap');
+    *, *::before, *::after {{ box-sizing: border-box; margin: 0; padding: 0; }}
     header {{visibility: hidden;}} #MainMenu {{visibility: hidden;}} footer {{visibility: hidden;}}
     .stApp {{
-        background: #0a0a0a;
+        background: #050505;
         font-family: 'Outfit', sans-serif !important;
+        min-height: 100vh;
     }}
-    .player-title {{
-        color: white;
-        font-size: 1.8rem;
-        font-weight: 700;
-        text-align: center;
-        margin: 15px 0 5px 0;
-        text-shadow: 0 0 20px rgba(229,9,20,0.4);
-    }}
-    .player-title span {{ color: #e50914; }}
-    .server-bar {{
+    /* TOP NAVBAR */
+    .p-navbar {{
         display: flex;
-        gap: 10px;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 32px;
+        background: rgba(0,0,0,0.85);
+        backdrop-filter: blur(20px);
+        border-bottom: 1px solid rgba(229,9,20,0.2);
+        margin-bottom: 0;
+    }}
+    .p-logo {{
+        font-size: 1.6rem;
+        font-weight: 800;
+        color: #e50914;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        text-shadow: 0 0 20px rgba(229,9,20,0.6);
+    }}
+    .p-back {{
+        color: #aaa !important;
+        text-decoration: none !important;
+        font-size: 13px;
+        border: 1px solid rgba(255,255,255,0.15);
+        padding: 7px 18px;
+        border-radius: 20px;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }}
+    .p-back:hover {{ color: #fff !important; border-color: #e50914; background: rgba(229,9,20,0.1); }}
+    /* MOVIE TITLE STRIP */
+    .p-title-strip {{
+        background: linear-gradient(135deg, #1a0000 0%, #0d0d0d 50%, #1a0000 100%);
+        padding: 22px 32px;
+        border-bottom: 1px solid rgba(229,9,20,0.15);
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }}
+    .p-play-icon {{
+        width: 44px;
+        height: 44px;
+        background: #e50914;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
         justify-content: center;
-        margin: 15px 0;
+        font-size: 18px;
+        box-shadow: 0 0 20px rgba(229,9,20,0.5);
+        flex-shrink: 0;
+    }}
+    .p-movie-name {{
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #fff;
+        text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+    }}
+    .p-movie-name span {{ color: #e50914; }}
+    /* SERVER BAR */
+    .p-srv-bar {{
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 14px 32px;
+        background: rgba(255,255,255,0.02);
+        border-bottom: 1px solid rgba(255,255,255,0.05);
         flex-wrap: wrap;
     }}
+    .p-srv-label {{
+        color: #666;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-right: 4px;
+    }}
     .srv-btn {{
-        padding: 8px 22px;
-        border-radius: 20px;
-        border: 1px solid rgba(255,255,255,0.2);
-        background: rgba(255,255,255,0.08);
-        color: white !important;
+        padding: 7px 20px;
+        border-radius: 6px;
+        border: 1px solid rgba(255,255,255,0.1);
+        background: rgba(255,255,255,0.05);
+        color: #ccc !important;
         cursor: pointer;
         font-size: 13px;
         font-weight: 600;
         text-decoration: none !important;
-        transition: all 0.3s;
+        transition: all 0.25s;
+        font-family: 'Outfit', sans-serif;
     }}
-    .srv-btn:hover, .srv-btn.active {{
+    .srv-btn:hover {{
+        background: rgba(229,9,20,0.15);
+        border-color: rgba(229,9,20,0.5);
+        color: #fff !important;
+    }}
+    .srv-btn.active {{
         background: #e50914;
         border-color: #e50914;
+        color: #fff !important;
         box-shadow: 0 4px 15px rgba(229,9,20,0.4);
     }}
-    .player-wrap {{
+    /* PLAYER */
+    .p-cinema {{
         width: 100%;
-        max-width: 1080px;
-        margin: 0 auto;
-        background: #000;
-        border-radius: 12px;
+        max-width: 1280px;
+        margin: 24px auto;
+        padding: 0 24px;
+    }}
+    .p-player-wrap {{
+        position: relative;
+        border-radius: 14px;
         overflow: hidden;
-        box-shadow: 0 0 60px rgba(229,9,20,0.2);
-        border: 1px solid rgba(229,9,20,0.3);
+        box-shadow: 0 0 80px rgba(229,9,20,0.15), 0 30px 60px rgba(0,0,0,0.8);
+        border: 1px solid rgba(229,9,20,0.2);
+        background: #000;
+    }}
+    .p-player-wrap::before {{
+        content: '';
+        position: absolute;
+        inset: -1px;
+        border-radius: 15px;
+        background: linear-gradient(135deg, rgba(229,9,20,0.3), transparent 40%, transparent 60%, rgba(229,9,20,0.1));
+        z-index: 0;
+        pointer-events: none;
     }}
     #player-frame {{
         width: 100%;
-        height: 600px;
+        height: 680px;
         border: none;
         display: block;
+        position: relative;
+        z-index: 1;
     }}
-    .back-bar {{
+    .p-footer {{
         text-align: center;
-        margin-top: 20px;
+        padding: 20px;
+        color: #444;
+        font-size: 12px;
     }}
-    .back-link {{
-        color: #a3a3a3 !important;
-        text-decoration: none !important;
-        font-size: 14px;
-        border: 1px solid #333;
-        padding: 8px 20px;
-        border-radius: 20px;
-        transition: all 0.3s;
-    }}
-    .back-link:hover {{ color: white !important; border-color: #666; }}
+    .p-footer span {{ color: #e50914; }}
     </style>
 
-    <div class="player-title">▶ <span>{movie_title}</span></div>
-    <div style="text-align:center; color:#a3a3a3; margin-bottom:20px; font-size:14px;">
-        Choose a server to watch the full movie
+    <div class="p-navbar">
+        <div class="p-logo">iBOMMA RAHUL</div>
+        <a class="p-back" href="/">← Back to Home</a>
     </div>
 
-    <div class="server-bar">
-        <a class="srv-btn" href="https://moviesapi.club/movie/{movie_id}" target="_blank">🖥 Server 1</a>
-        <a class="srv-btn" href="https://www.2embed.cc/embed/{movie_id}" target="_blank">🖥 Server 2</a>
-        <a class="srv-btn" href="https://vidsrc.rip/embed/movie/{movie_id}" target="_blank">🖥 Server 3</a>
-        <a class="srv-btn" href="https://vidsrc.xyz/embed/movie?tmdb={movie_id}" target="_blank">🖥 Server 4</a>
+    <div class="p-title-strip">
+        <div class="p-play-icon">▶</div>
+        <div class="p-movie-name">Now Playing: <span>{movie_title}</span></div>
     </div>
 
-    <div style="width:100%;max-width:700px;margin:30px auto;background:rgba(24,24,24,0.6);border:1px solid rgba(229,9,20,0.3);border-radius:16px;padding:40px 30px;text-align:center;backdrop-filter:blur(10px);">
-        <div style="font-size:60px;margin-bottom:15px;">🎬</div>
-        <div style="color:white;font-size:1.4rem;font-weight:700;margin-bottom:10px;">{movie_title}</div>
-        <div style="color:#a3a3a3;font-size:14px;margin-bottom:30px;line-height:1.6;">
-            Click any server button above to watch the full movie.<br>
-            If one server doesn't work, try the next one!
+    <div class="p-srv-bar">
+        <span class="p-srv-label">Switch Server:</span>
+        <a class="srv-btn active" onclick="loadSrc('https://moviesapi.club/movie/{movie_id}', this)" href="#">⚡ Server 1</a>
+        <a class="srv-btn" onclick="loadSrc('https://www.2embed.cc/embed/{movie_id}', this)" href="#">⚡ Server 2</a>
+        <a class="srv-btn" onclick="loadSrc('https://vidsrc.rip/embed/movie/{movie_id}', this)" href="#">⚡ Server 3</a>
+        <a class="srv-btn" onclick="loadSrc('https://multiembed.mov/?video_id={movie_id}&tmdb=1', this)" href="#">⚡ Server 4</a>
+    </div>
+
+    <div class="p-cinema">
+        <div class="p-player-wrap">
+            <iframe id="player-frame"
+                src="https://moviesapi.club/movie/{movie_id}"
+                allowfullscreen
+                allow="autoplay; encrypted-media; fullscreen; picture-in-picture">
+            </iframe>
         </div>
-        <a href="https://moviesapi.club/movie/{movie_id}" target="_blank"
-           style="display:inline-block;padding:14px 40px;background:linear-gradient(90deg,#e50914,#b8000b);
-                  color:white;border-radius:30px;text-decoration:none;font-weight:700;font-size:1.1rem;
-                  box-shadow:0 4px 20px rgba(229,9,20,0.5);transition:all 0.3s;">
-            ▶ Watch Now (Server 1)
-        </a>
     </div>
 
-    <div class="back-bar">
-        <a class="back-link" href="/">← Back to iBOMMA Rahul</a>
-    </div>
+    <div class="p-footer">Powered by <span>iBOMMA RAHUL</span> &nbsp;•&nbsp; If the player is blank, switch to another server above.</div>
 
+    <script>
+    function loadSrc(url, btn) {{
+        document.getElementById('player-frame').src = url;
+        document.querySelectorAll('.srv-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        event.preventDefault();
+    }}
+    </script>
     """, unsafe_allow_html=True)
     st.stop()
 
@@ -255,148 +342,232 @@ header {visibility: hidden;}
 #MainMenu {visibility: hidden;}
 footer {visibility: hidden;}
 
+/* ── ANIMATED BACKGROUND ── */
+@keyframes bgShift {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
 .stApp {
-    background: radial-gradient(circle at top, #2b0000 0%, #0a0a0a 50%, #000000 100%);
-    background-attachment: fixed;
+    background: linear-gradient(135deg, #0d0000 0%, #1a0000 20%, #0a0a0a 50%, #000814 80%, #050005 100%);
+    background-size: 400% 400%;
+    animation: bgShift 12s ease infinite;
     color: #e5e5e5;
     font-family: 'Outfit', sans-serif !important;
 }
 
+/* ── GLOWING NAVBAR ── */
+.main-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 18px 40px;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(24px);
+    border-bottom: 1px solid rgba(229,9,20,0.25);
+    margin-bottom: 10px;
+    box-shadow: 0 4px 30px rgba(0,0,0,0.5);
+}
+.nav-logo {
+    font-size: 2.2rem;
+    font-weight: 800;
+    background: linear-gradient(90deg, #ff2233, #e50914, #ff6666);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-transform: uppercase;
+    letter-spacing: 4px;
+    filter: drop-shadow(0 0 12px rgba(229,9,20,0.7));
+}
+.nav-tagline {
+    font-size: 0.75rem;
+    color: #666;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    text-align: center;
+    margin-top: 2px;
+}
+
+/* ── HERO AREA ── */
 .hero-title {
     font-family: 'Outfit', sans-serif;
-    color: #e50914;
+    background: linear-gradient(90deg, #ff2233, #e50914, #ff6666, #e50914);
+    background-size: 200% auto;
+    animation: shimmer 3s linear infinite;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
     font-weight: 800;
-    font-size: 4.5rem;
+    font-size: 4rem;
     text-align: center;
     text-transform: uppercase;
-    letter-spacing: 3px;
-    margin-top: 1rem;
-    margin-bottom: 0.5rem;
-    text-shadow: 0 0 30px rgba(229,9,20,0.5);
+    letter-spacing: 4px;
+    margin-top: 0.5rem;
+    margin-bottom: 0.3rem;
+}
+@keyframes shimmer {
+    to { background-position: 200% center; }
 }
 .hero-subtitle {
     text-align: center;
-    color: #a3a3a3;
-    font-size: 1.2rem;
-    margin-bottom: 3rem;
+    color: #666;
+    font-size: 1rem;
+    margin-bottom: 2.5rem;
     font-weight: 300;
-    letter-spacing: 1px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
 }
 
+/* ── SEARCH AREA ── */
 .stSelectbox label {
-    color: #fff !important;
-    font-size: 1.1rem;
+    color: #aaa !important;
+    font-size: 0.85rem;
     text-align: center;
     width: 100%;
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 div[data-baseweb="select"] > div {
-    background-color: rgba(255,255,255,0.05);
+    background-color: rgba(255,255,255,0.04);
     border: 1px solid rgba(255,255,255,0.1);
     color: white;
-    border-radius: 8px;
-    transition: border-color 0.3s;
+    border-radius: 10px;
+    transition: all 0.3s;
 }
 div[data-baseweb="select"] > div:hover {
     border-color: #e50914;
+    box-shadow: 0 0 20px rgba(229,9,20,0.15);
 }
 
-.stButton {
-    display: flex;
-    justify-content: center;
-    margin-top: 25px;
-}
+/* ── RECOMMEND BUTTON ── */
+.stButton { display: flex; justify-content: center; margin-top: 20px; }
 .stButton>button {
-    background: linear-gradient(90deg, #e50914 0%, #b8000b 100%) !important;
+    background: linear-gradient(90deg, #e50914, #ff2233, #b8000b) !important;
+    background-size: 200% auto !important;
     color: white !important;
     border: none !important;
-    padding: 12px 40px !important;
-    border-radius: 30px !important;
-    font-weight: 600 !important;
-    font-size: 1.2rem !important;
-    box-shadow: 0 4px 15px rgba(229,9,20,0.4) !important;
-    transition: all 0.3s ease !important;
+    padding: 13px 50px !important;
+    border-radius: 50px !important;
+    font-weight: 700 !important;
+    font-size: 1.1rem !important;
+    letter-spacing: 1px !important;
+    text-transform: uppercase !important;
+    box-shadow: 0 6px 25px rgba(229,9,20,0.5) !important;
+    transition: all 0.4s ease !important;
+    animation: shimmer 3s linear infinite !important;
 }
 .stButton>button:hover {
-    transform: scale(1.05) translateY(-2px) !important;
-    box-shadow: 0 8px 25px rgba(229,9,20,0.6) !important;
+    transform: scale(1.07) translateY(-3px) !important;
+    box-shadow: 0 12px 35px rgba(229,9,20,0.7) !important;
 }
 
+/* ── MOVIE ROW ── */
 .movie-row {
     display: flex;
-    gap: 30px;
-    padding: 20px 10px 50px 10px;
+    gap: 24px;
+    padding: 20px 20px 60px;
     flex-wrap: wrap;
     justify-content: center;
 }
 
+/* ── CARD ANIMATION ── */
 @keyframes fadeInUp {
-    to { opacity: 1; transform: translateY(0); }
+    from { opacity: 0; transform: translateY(40px) scale(0.95); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
+/* ── MOVIE CARD ── */
 .movie-card {
     flex: 0 0 auto;
-    width: 230px;
-    background: rgba(24, 24, 24, 0.4);
-    backdrop-filter: blur(15px);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 16px;
+    width: 220px;
+    background: rgba(18, 18, 18, 0.7);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 18px;
     overflow: hidden;
     transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.6);
     cursor: pointer;
     opacity: 0;
-    transform: translateY(30px);
-    animation: fadeInUp 0.6s ease forwards;
+    transform: translateY(40px);
+    animation: fadeInUp 0.7s ease forwards;
     display: flex;
     flex-direction: column;
+    position: relative;
 }
-.movie-card:nth-child(1) { animation-delay: 0.1s; }
-.movie-card:nth-child(2) { animation-delay: 0.2s; }
-.movie-card:nth-child(3) { animation-delay: 0.3s; }
-.movie-card:nth-child(4) { animation-delay: 0.4s; }
-.movie-card:nth-child(5) { animation-delay: 0.5s; }
+.movie-card:nth-child(1) { animation-delay: 0.05s; }
+.movie-card:nth-child(2) { animation-delay: 0.15s; }
+.movie-card:nth-child(3) { animation-delay: 0.25s; }
+.movie-card:nth-child(4) { animation-delay: 0.35s; }
+.movie-card:nth-child(5) { animation-delay: 0.45s; }
+.movie-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 18px;
+    background: linear-gradient(135deg, rgba(229,9,20,0.08), transparent);
+    opacity: 0;
+    transition: opacity 0.4s;
+    pointer-events: none;
+}
+.movie-card:hover::after { opacity: 1; }
 .movie-card:hover {
-    transform: scale(1.05) translateY(-10px) !important;
-    box-shadow: 0 20px 40px rgba(229, 9, 20, 0.3);
-    border-color: rgba(229, 9, 20, 0.5);
+    transform: scale(1.07) translateY(-12px) !important;
+    box-shadow: 0 25px 50px rgba(229,9,20,0.25), 0 10px 20px rgba(0,0,0,0.8);
+    border-color: rgba(229,9,20,0.4);
     z-index: 10;
 }
 
+/* ── POSTER AREA WITH OVERLAY ── */
+.poster-wrap {
+    position: relative;
+    overflow: hidden;
+}
 .movie-poster {
     width: 100%;
-    height: 345px;
+    height: 320px;
     object-fit: cover;
-    border-bottom: 1px solid rgba(255,255,255,0.05);
+    display: block;
+    transition: transform 0.5s ease;
 }
+.movie-card:hover .movie-poster { transform: scale(1.05); }
+.poster-overlay {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 60%;
+    background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 100%);
+}
+
+/* ── CARD INFO ── */
 .movie-info {
-    padding: 15px;
+    padding: 14px;
     display: flex;
     flex-direction: column;
     flex-grow: 1;
+    border-top: 1px solid rgba(255,255,255,0.05);
 }
 .movie-title {
-    font-size: 16px;
-    font-weight: 600;
+    font-size: 15px;
+    font-weight: 700;
     color: #fff;
-    margin-bottom: 6px;
+    margin-bottom: 5px;
     text-align: center;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 .movie-meta {
-    font-size: 12px;
-    color: #a3a3a3;
-    margin-bottom: 8px;
+    font-size: 11px;
+    color: #777;
+    margin-bottom: 7px;
     text-align: center;
 }
 .movie-genres {
-    font-size: 11px;
+    font-size: 10px;
     color: #e50914;
     text-align: center;
-    font-weight: 600;
+    font-weight: 700;
     text-transform: uppercase;
-    margin-bottom: 10px;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
 }
 .movie-overview {
     font-size: 11px;
@@ -450,8 +621,14 @@ div[data-baseweb="select"] > div:hover {
 """, unsafe_allow_html=True)
 
 st.markdown("""
+<div class="main-nav">
+    <div>
+        <div class="nav-logo">iBOMMA RAHUL</div>
+        <div class="nav-tagline">Stream · Discover · Experience</div>
+    </div>
+</div>
 <div class="hero-title">iBOMMA RAHUL</div>
-<div class="hero-subtitle">Discover and stream your next favorite movie instantly.</div>
+<div class="hero-subtitle">Stream · Discover · Experience</div>
 """, unsafe_allow_html=True)
 
 # ─── LOAD DATA ────────────────────────────────────────────────────────────────
@@ -514,8 +691,11 @@ def render_movie_cards(titles, years, ratings, ids, details_list):
 
         cards_html += (
             f'<div class="movie-card">'
+            f'<div class="poster-wrap">'
             f'<img src="{poster_url}" class="movie-poster" alt="{title_esc}" '
-            f'onerror="this.src=\'https://placehold.co/500x750/333/FFFFFF?text=No+Poster\'">'
+            f'onerror="this.src=\'https://placehold.co/500x750/111/FFFFFF?text=No+Poster\'">'
+            f'<div class="poster-overlay"></div>'
+            f'</div>'
             f'<div class="movie-info">'
             f'<div class="movie-title" title="{title_esc}">{title_esc}</div>'
             f'<div class="movie-meta">{year} &nbsp;•&nbsp; <span class="rating-star">{rating} ⭐</span></div>'

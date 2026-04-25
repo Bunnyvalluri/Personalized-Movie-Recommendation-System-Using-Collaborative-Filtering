@@ -154,223 +154,135 @@ if "watch" in st.query_params:
     @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap');
     *, *::before, *::after {{ box-sizing: border-box; margin: 0; padding: 0; }}
     header {{visibility: hidden;}} #MainMenu {{visibility: hidden;}} footer {{visibility: hidden;}}
-    .stApp {{
-        background: #050505;
-        font-family: 'Outfit', sans-serif !important;
-        min-height: 100vh;
-    }}
-    /* TOP NAVBAR */
+    .stApp {{ background: #050505; font-family: 'Outfit', sans-serif !important; min-height: 100vh; }}
     .p-navbar {{
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 14px 32px;
-        background: rgba(0,0,0,0.85);
-        backdrop-filter: blur(20px);
-        border-bottom: 1px solid rgba(229,9,20,0.2);
-        margin-bottom: 0;
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 14px 32px; background: rgba(0,0,0,0.88);
+        backdrop-filter: blur(20px); border-bottom: 1px solid rgba(229,9,20,0.2);
+        position: sticky; top: 0; z-index: 100;
     }}
-    .p-logo {{
-        font-size: 1.6rem;
-        font-weight: 800;
-        color: #e50914;
-        text-transform: uppercase;
-        letter-spacing: 2px;
-        text-shadow: 0 0 20px rgba(229,9,20,0.6);
-    }}
+    .p-logo {{ font-size: 1.6rem; font-weight: 800; color: #e50914;
+        text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 0 20px rgba(229,9,20,0.6); }}
     .p-back {{
-        color: #aaa !important;
-        text-decoration: none !important;
-        font-size: 13px;
-        border: 1px solid rgba(255,255,255,0.15);
-        padding: 7px 18px;
-        border-radius: 20px;
+        color: #aaa !important; text-decoration: none !important; font-size: 13px;
+        border: 1px solid rgba(255,255,255,0.15); padding: 7px 18px; border-radius: 20px;
         transition: all 0.3s;
-        display: flex;
-        align-items: center;
-        gap: 6px;
     }}
     .p-back:hover {{ color: #fff !important; border-color: #e50914; background: rgba(229,9,20,0.1); }}
-    /* MOVIE TITLE STRIP */
     .p-title-strip {{
         background: linear-gradient(135deg, #1a0000 0%, #0d0d0d 50%, #1a0000 100%);
-        padding: 22px 32px;
-        border-bottom: 1px solid rgba(229,9,20,0.15);
-        display: flex;
-        align-items: center;
-        gap: 16px;
+        padding: 18px 32px; border-bottom: 1px solid rgba(229,9,20,0.12);
+        display: flex; align-items: center; gap: 14px;
     }}
     .p-play-icon {{
-        width: 44px;
-        height: 44px;
-        background: #e50914;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 18px;
-        box-shadow: 0 0 20px rgba(229,9,20,0.5);
-        flex-shrink: 0;
+        width: 40px; height: 40px; background: #e50914; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center; font-size: 16px;
+        box-shadow: 0 0 18px rgba(229,9,20,0.5); flex-shrink: 0;
     }}
-    .p-movie-name {{
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: #fff;
-        text-shadow: 0 2px 10px rgba(0,0,0,0.5);
-    }}
+    .p-movie-name {{ font-size: 1.35rem; font-weight: 700; color: #fff; }}
     .p-movie-name span {{ color: #e50914; }}
-    /* SERVER BAR */
     .p-srv-bar {{
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 14px 32px;
-        background: rgba(255,255,255,0.02);
-        border-bottom: 1px solid rgba(255,255,255,0.05);
+        display: flex; align-items: center; gap: 10px; padding: 13px 32px;
+        background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.05);
         flex-wrap: wrap;
     }}
-    .p-srv-label {{
-        color: #666;
-        font-size: 12px;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        margin-right: 4px;
-    }}
+    .p-srv-label {{ color: #555; font-size: 11px; font-weight: 700; text-transform: uppercase;
+        letter-spacing: 1px; margin-right: 4px; }}
     .srv-btn {{
-        padding: 7px 20px;
-        border-radius: 6px;
-        border: 1px solid rgba(255,255,255,0.1);
-        background: rgba(255,255,255,0.05);
-        color: #ccc !important;
-        cursor: pointer;
-        font-size: 13px;
-        font-weight: 600;
-        text-decoration: none !important;
-        transition: all 0.25s;
-        font-family: 'Outfit', sans-serif;
+        padding: 7px 18px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1);
+        background: rgba(255,255,255,0.05); color: #ccc !important; cursor: pointer;
+        font-size: 13px; font-weight: 600; text-decoration: none !important;
+        transition: all 0.25s; font-family: 'Outfit', sans-serif;
     }}
-    .srv-btn:hover {{
-        background: rgba(229,9,20,0.15);
-        border-color: rgba(229,9,20,0.5);
-        color: #fff !important;
-    }}
-    .srv-btn.active {{
-        background: #e50914;
-        border-color: #e50914;
-        color: #fff !important;
-        box-shadow: 0 4px 15px rgba(229,9,20,0.4);
-    }}
-    /* PLAYER */
-    .p-cinema {{
-        width: 100%;
-        max-width: 1280px;
-        margin: 24px auto;
-        padding: 0 24px;
-    }}
+    .srv-btn:hover {{ background: rgba(229,9,20,0.15); border-color: rgba(229,9,20,0.5); color: #fff !important; }}
+    .srv-btn.active {{ background: #e50914; border-color: #e50914; color: #fff !important;
+        box-shadow: 0 4px 14px rgba(229,9,20,0.4); }}
+    .p-cinema {{ width: 100%; max-width: 1280px; margin: 24px auto; padding: 0 24px; }}
     .p-player-wrap {{
-        position: relative;
-        border-radius: 14px;
-        /* overflow must NOT be hidden — it blocks browser fullscreen expansion */
-        overflow: visible;
+        position: relative; border-radius: 14px; overflow: hidden;
         box-shadow: 0 0 80px rgba(229,9,20,0.15), 0 30px 60px rgba(0,0,0,0.8);
-        border: 1px solid rgba(229,9,20,0.2);
-        background: #000;
+        border: 1px solid rgba(229,9,20,0.2); background: #000;
     }}
-    .p-player-wrap::before {{
-        content: '';
-        position: absolute;
-        inset: -1px;
-        border-radius: 15px;
-        background: linear-gradient(135deg, rgba(229,9,20,0.3), transparent 40%, transparent 60%, rgba(229,9,20,0.1));
-        z-index: 0;
-        pointer-events: none;
+    #player-frame {{ width: 100%; height: 680px; border: none; display: block; }}
+    /* Fullscreen */
+    .p-player-wrap:fullscreen, .p-player-wrap:-webkit-full-screen,
+    .p-player-wrap:-moz-full-screen, .p-player-wrap:-ms-fullscreen {{
+        border-radius: 0 !important; border: none !important;
+        max-width: 100vw !important; width: 100vw !important; height: 100vh !important;
     }}
-    #player-frame {{
-        width: 100%;
-        height: 680px;
-        border: none;
-        display: block;
-        position: relative;
-        z-index: 1;
-        border-radius: 14px;
+    .p-player-wrap:fullscreen #player-frame,
+    .p-player-wrap:-webkit-full-screen #player-frame,
+    .p-player-wrap:-moz-full-screen #player-frame,
+    .p-player-wrap:-ms-fullscreen #player-frame {{
+        width: 100vw !important; height: 100vh !important;
     }}
-    /* Fullscreen: when the PAGE enters fullscreen, stretch player to cover it */
-    :fullscreen .p-cinema,
-    :-webkit-full-screen .p-cinema,
-    :-moz-full-screen .p-cinema,
-    :-ms-fullscreen .p-cinema {{
-        max-width: 100vw !important;
-        margin: 0 !important;
-        padding: 0 !important;
-    }}
-    :fullscreen .p-player-wrap,
-    :-webkit-full-screen .p-player-wrap,
-    :-moz-full-screen .p-player-wrap,
-    :-ms-fullscreen .p-player-wrap {{
-        border-radius: 0 !important;
-        border: none !important;
-        box-shadow: none !important;
-    }}
-    :fullscreen #player-frame,
-    :-webkit-full-screen #player-frame,
-    :-moz-full-screen #player-frame,
-    :-ms-fullscreen #player-frame {{
-        height: 100vh !important;
-        border-radius: 0 !important;
-    }}
-    /* Custom fullscreen button overlay */
     .fs-btn {{
-        position: absolute;
-        bottom: 14px;
-        right: 14px;
-        z-index: 20;
-        width: 42px;
-        height: 42px;
-        background: rgba(0,0,0,0.7);
-        border: 1px solid rgba(255,255,255,0.25);
-        border-radius: 8px;
-        color: #fff;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: all 0.2s ease;
-        backdrop-filter: blur(8px);
+        position: absolute; bottom: 14px; right: 14px; z-index: 20;
+        width: 42px; height: 42px; background: rgba(0,0,0,0.7);
+        border: 1px solid rgba(255,255,255,0.25); border-radius: 8px;
+        color: #fff; cursor: pointer; display: flex; align-items: center;
+        justify-content: center; transition: all 0.2s ease; backdrop-filter: blur(8px);
     }}
-    .fs-btn:hover {{
-        background: #e50914;
-        border-color: #e50914;
-        transform: scale(1.1);
-        box-shadow: 0 4px 18px rgba(229,9,20,0.55);
+    .fs-btn:hover {{ background: #e50914; border-color: #e50914; transform: scale(1.1);
+        box-shadow: 0 4px 18px rgba(229,9,20,0.55); }}
+    .fs-btn svg {{ width: 20px; height: 20px; pointer-events: none; }}
+    /* Loading overlay */
+    .p-loading {{
+        position: absolute; inset: 0; display: flex; flex-direction: column;
+        align-items: center; justify-content: center; background: #000;
+        z-index: 10; gap: 14px; transition: opacity 0.4s;
     }}
-    .fs-btn svg {{
-        width: 20px;
-        height: 20px;
-        pointer-events: none;
+    .p-loading.hidden {{ opacity: 0; pointer-events: none; }}
+    .p-spinner {{
+        width: 46px; height: 46px;
+        border: 3px solid rgba(229,9,20,0.2); border-top-color: #e50914;
+        border-radius: 50%; animation: spin 0.8s linear infinite;
     }}
-    .p-footer {{
-        text-align: center;
-        padding: 20px;
-        color: #444;
-        font-size: 12px;
+    @keyframes spin {{ to {{ transform: rotate(360deg); }} }}
+    .p-loading-text {{ color: #777; font-size: 13px; }}
+    /* Cinema unavailable banner */
+    .p-unavail {{
+        display: none; flex-direction: column; align-items: center;
+        justify-content: center; gap: 16px; padding: 50px 30px;
+        background: rgba(10,10,16,0.97); position: absolute; inset: 0;
+        z-index: 25; text-align: center; border-radius: 14px;
     }}
-    .p-footer span {{ color: #e50914; }}
+    .p-unavail.show {{ display: flex; }}
+    .p-unavail-icon {{ font-size: 3.2rem; }}
+    .p-unavail-title {{ font-size: 1.25rem; font-weight: 800; color: #fff; }}
+    .p-unavail-sub {{ font-size: 13px; color: #666; max-width: 360px; line-height: 1.6; }}
+    .p-unavail-links {{ display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }}
+    .p-unavail-link {{
+        padding: 10px 22px; border-radius: 8px; text-decoration: none !important;
+        font-weight: 700; font-size: 13px; transition: all 0.25s;
+    }}
+    .p-unavail-link.red {{ background: linear-gradient(135deg,#e50914,#b8000b);
+        color:#fff !important; box-shadow:0 4px 16px rgba(229,9,20,0.4); }}
+    .p-unavail-link.red:hover {{ transform:translateY(-2px); box-shadow:0 8px 24px rgba(229,9,20,0.6); }}
+    .p-unavail-link.grey {{ background:rgba(255,255,255,0.07); color:#ccc !important;
+        border:1px solid rgba(255,255,255,0.14); }}
+    .p-unavail-link.grey:hover {{ background:rgba(255,255,255,0.14); color:#fff !important; }}
+    .p-retry {{ background:none; border:none; color:#555; font-size:12px; cursor:pointer;
+        text-decoration:underline; font-family:'Outfit',sans-serif; margin-top:4px; }}
+    .p-retry:hover {{ color:#aaa; }}
+    .p-footer {{ text-align:center; padding:18px; color:#3a3a3a; font-size:12px; }}
+    .p-footer span {{ color:#e50914; }}
     .p-footer kbd {{
-        background: #1a1a1a;
-        border: 1px solid #333;
-        padding: 1px 7px;
-        border-radius: 4px;
-        color: #aaa;
-        font-size: 11px;
-        font-family: monospace;
+        background:#1a1a1a; border:1px solid #2a2a2a; padding:1px 7px;
+        border-radius:4px; color:#888; font-size:11px; font-family:monospace;
+    }}
+    @media (max-width:600px) {{
+        .p-navbar {{ padding:12px 16px; }} .p-logo {{ font-size:1.2rem; }}
+        .p-title-strip {{ padding:12px 16px; }} .p-movie-name {{ font-size:1rem; }}
+        .p-srv-bar {{ padding:10px 16px; }} .p-cinema {{ padding:0 10px; }}
+        #player-frame {{ height:220px; }}
     }}
     </style>
 
-    <div class="p-navbar">
+    <nav class="p-navbar">
         <div class="p-logo">iBOMMA RAHUL</div>
         <a class="p-back" href="/">← Back to Home</a>
-    </div>
+    </nav>
 
     <div class="p-title-strip">
         <div class="p-play-icon">▶</div>
@@ -379,21 +291,40 @@ if "watch" in st.query_params:
 
     <div class="p-srv-bar">
         <span class="p-srv-label">Switch Server:</span>
-        <a class="srv-btn active" onclick="loadSrc('https://moviesapi.club/movie/{movie_id}', this)" href="#">⚡ Server 1</a>
-        <a class="srv-btn" onclick="loadSrc('https://www.2embed.cc/embed/{movie_id}', this)" href="#">⚡ Server 2</a>
-        <a class="srv-btn" onclick="loadSrc('https://vidsrc.rip/embed/movie/{movie_id}', this)" href="#">⚡ Server 3</a>
-        <a class="srv-btn" onclick="loadSrc('https://multiembed.mov/?video_id={movie_id}&tmdb=1', this)" href="#">⚡ Server 4</a>
+        <a class="srv-btn active" onclick="loadSrc('s1',this)" href="#">⚡ Server 1</a>
+        <a class="srv-btn" onclick="loadSrc('s2',this)" href="#">⚡ Server 2</a>
+        <a class="srv-btn" onclick="loadSrc('s3',this)" href="#">⚡ Server 3</a>
+        <a class="srv-btn" onclick="loadSrc('s4',this)" href="#">⚡ Server 4</a>
+        <a class="srv-btn" onclick="loadSrc('s5',this)" href="#">⚡ Server 5</a>
+        <a class="srv-btn" onclick="loadSrc('s6',this)" href="#">⚡ Server 6</a>
     </div>
 
     <div class="p-cinema">
-        <div class="p-player-wrap" id="player-wrap">
+        <div class="p-player-wrap" id="pwrap">
+            <div class="p-loading" id="pload">
+                <div class="p-spinner"></div>
+                <div class="p-loading-text">Connecting to server…</div>
+            </div>
+            <div class="p-unavail" id="punavail">
+                <div class="p-unavail-icon">🎭</div>
+                <div class="p-unavail-title">Not Available Yet</div>
+                <div class="p-unavail-sub">
+                    This movie may still be in theaters or not yet on any streaming server.
+                    Try all 6 servers, or check back in a few weeks.
+                </div>
+                <div class="p-unavail-links">
+                    <a id="yt-link" href="#" target="_blank" class="p-unavail-link red">▶ Watch Trailer</a>
+                    <a id="jw-link" href="#" target="_blank" class="p-unavail-link grey">🔍 Find on JustWatch</a>
+                </div>
+                <button class="p-retry" onclick="retryAll()">↩ Try all servers again</button>
+            </div>
             <iframe id="player-frame"
-                src="https://moviesapi.club/movie/{movie_id}"
                 allowfullscreen
-                allow="autoplay; encrypted-media; fullscreen; picture-in-picture; web-share">
+                allow="autoplay; encrypted-media; fullscreen; picture-in-picture; web-share"
+                src="about:blank"
+                onload="onLoad()">
             </iframe>
-            <!-- Custom fullscreen button -->
-            <button class="fs-btn" id="fs-btn" onclick="goFullscreen()" title="Fullscreen (Press F)">
+            <button class="fs-btn" id="fs-btn" onclick="goFullscreen()" title="Fullscreen (F)">
                 <svg id="fs-expand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                     <polyline points="15 3 21 3 21 9"></polyline>
                     <polyline points="9 21 3 21 3 15"></polyline>
@@ -410,54 +341,111 @@ if "watch" in st.query_params:
         </div>
     </div>
 
-    <div class="p-footer">Powered by <span>iBOMMA RAHUL</span> &nbsp;•&nbsp; Blank player? Switch server above. &nbsp;•&nbsp; <kbd>F</kbd> = Fullscreen &nbsp;•&nbsp; <kbd>Esc</kbd> = Exit</div>
+    <div class="p-footer">Powered by <span>iBOMMA RAHUL</span> &nbsp;•&nbsp;
+        Blank? Try another server &nbsp;•&nbsp;
+        <kbd>F</kbd> Fullscreen &nbsp;•&nbsp; <kbd>Esc</kbd> Exit
+    </div>
 
     <script>
-    function loadSrc(url, btn) {{
-        document.getElementById('player-frame').src = url;
+    var mid = '{movie_id}';
+    var mtitle = '{movie_title}';
+    var servers = {{
+        s1: 'https://moviesapi.club/movie/' + mid,
+        s2: 'https://www.2embed.cc/embed/' + mid,
+        s3: 'https://vidsrc.rip/embed/movie/' + mid,
+        s4: 'https://multiembed.mov/?video_id=' + mid + '&tmdb=1',
+        s5: 'https://embed.su/embed/movie/' + mid,
+        s6: 'https://vidsrc.me/embed/movie?tmdb=' + mid
+    }};
+
+    var blankTimer = null;
+    function startTimer() {{
+        clearTimeout(blankTimer);
+        blankTimer = setTimeout(function() {{
+            var ld = document.getElementById('pload');
+            if (ld && !ld.classList.contains('hidden')) {{
+                ld.classList.add('hidden');
+                showUnavail();
+            }}
+        }}, 8000);
+    }}
+
+    function showUnavail() {{
+        document.getElementById('yt-link').href =
+            'https://www.youtube.com/results?search_query=' + encodeURIComponent(mtitle + ' official trailer');
+        document.getElementById('jw-link').href =
+            'https://www.justwatch.com/in/search?q=' + encodeURIComponent(mtitle);
+        document.getElementById('punavail').classList.add('show');
+    }}
+
+    function retryAll() {{
+        document.getElementById('punavail').classList.remove('show');
+        var keys = ['s1','s2','s3','s4','s5','s6'], i = 0;
+        function tryNext() {{
+            if (i >= keys.length) {{ showUnavail(); return; }}
+            var ld = document.getElementById('pload');
+            if (ld) ld.classList.remove('hidden');
+            document.getElementById('player-frame').src = servers[keys[i++]];
+            startTimer();
+        }}
+        tryNext();
+    }}
+
+    function onLoad() {{
+        clearTimeout(blankTimer);
+        var ld = document.getElementById('pload');
+        if (ld) ld.classList.add('hidden');
+    }}
+
+    function loadSrc(key, btn) {{
+        document.getElementById('punavail').classList.remove('show');
+        var ld = document.getElementById('pload');
+        if (ld) ld.classList.remove('hidden');
+        document.getElementById('player-frame').src = servers[key];
         document.querySelectorAll('.srv-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         event.preventDefault();
+        startTimer();
     }}
 
     function goFullscreen() {{
-        // We fullscreen the entire page (document.documentElement), not the iframe.
-        // This bypasses the browser's Permissions-Policy that blocks iframe fullscreen.
-        // Then CSS stretches the player to fill the full-screen viewport.
-        var doc = document.documentElement;
+        var wrap = document.getElementById('pwrap');
         if (!document.fullscreenElement && !document.webkitFullscreenElement) {{
-            var req = doc.requestFullscreen
-                   || doc.webkitRequestFullscreen
-                   || doc.mozRequestFullScreen
-                   || doc.msRequestFullscreen;
-            if (req) req.call(doc).catch(function(err) {{
-                console.warn('Fullscreen request failed:', err);
-            }});
+            var req = wrap.requestFullscreen || wrap.webkitRequestFullscreen
+                   || wrap.mozRequestFullScreen || wrap.msRequestFullscreen;
+            if (req) req.call(wrap).catch(function(e) {{ console.warn(e); }});
         }} else {{
-            var exit = document.exitFullscreen
-                    || document.webkitExitFullscreen
-                    || document.mozCancelFullScreen
-                    || document.msExitFullscreen;
-            if (exit) exit.call(document);
+            var ex = document.exitFullscreen || document.webkitExitFullscreen
+                  || document.mozCancelFullScreen || document.msExitFullscreen;
+            if (ex) ex.call(document);
         }}
     }}
 
-    // Sync icon when fullscreen state changes (enter or exit)
-    ['fullscreenchange','webkitfullscreenchange','mozfullscreenchange','MSFullscreenChange'].forEach(function(ev) {{
-        document.addEventListener(ev, function() {{
-            var active = !!(document.fullscreenElement || document.webkitFullscreenElement);
-            document.getElementById('fs-expand').style.display   = active ? 'none' : '';
-            document.getElementById('fs-collapse').style.display = active ? ''     : 'none';
+    ['fullscreenchange','webkitfullscreenchange','mozfullscreenchange','MSFullscreenChange']
+        .forEach(function(ev) {{
+            document.addEventListener(ev, function() {{
+                var on = !!(document.fullscreenElement || document.webkitFullscreenElement);
+                document.getElementById('fs-expand').style.display  = on ? 'none' : '';
+                document.getElementById('fs-collapse').style.display = on ? '' : 'none';
+            }});
         }});
+
+    document.addEventListener('keydown', function(e) {{
+        if ((e.key==='f'||e.key==='F') && !e.ctrlKey && !e.metaKey && !e.altKey) goFullscreen();
     }});
 
-    // Keyboard: F toggles fullscreen, Esc already handled natively by browser
-    document.addEventListener('keydown', function(e) {{
-        if ((e.key === 'f' || e.key === 'F') && !e.ctrlKey && !e.metaKey) goFullscreen();
-    }});
+    // Start loading server 1 after a short delay
+    setTimeout(function() {{
+        document.getElementById('player-frame').src = servers.s1;
+        startTimer();
+    }}, 80);
     </script>
     """, unsafe_allow_html=True)
     st.stop()
+
+
+
+
 
 
 # ─── CSS ──────────────────────────────────────────────────────────────────────
@@ -860,7 +848,9 @@ def render_movie_cards(titles, years, ratings, ids, details_list):
         genres_raw   = d.get("genres", "")
         poster_url   = escape(d.get("poster", ""))
         from urllib.parse import quote as _q
-        watch_url = f"/app/static/player.html?id={movie_id}&title={_q(titles[i])}"
+        # Use internal Streamlit query-param route — works on Streamlit Cloud
+        # (static file serving is unreliable on Cloud)
+        watch_url = f"/?watch={movie_id}&title={_q(titles[i])}"
         trailer_html = (
             f'<a href="{escape(d["trailer"])}" target="_blank" class="trailer-btn">🎬 Trailer</a>'
             if d.get("trailer") else ''

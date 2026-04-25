@@ -212,35 +212,36 @@ if "watch" in st.query_params:
     </style>
 
     <div class="player-title">▶ <span>{movie_title}</span></div>
-
-    <div class="server-bar">
-        <a class="srv-btn active" onclick="loadSrc('https://moviesapi.club/movie/{movie_id}')" href="#">🖥 Server 1</a>
-        <a class="srv-btn" onclick="loadSrc('https://www.2embed.cc/embed/{movie_id}')" href="#">🖥 Server 2</a>
-        <a class="srv-btn" onclick="loadSrc('https://vidsrc.rip/embed/movie/{movie_id}')" href="#">🖥 Server 3</a>
-        <a class="srv-btn" onclick="loadSrc('https://multiembed.mov/?video_id={movie_id}&tmdb=1')" href="#">🖥 Server 4</a>
+    <div style="text-align:center; color:#a3a3a3; margin-bottom:20px; font-size:14px;">
+        Choose a server to watch the full movie
     </div>
 
-    <div class="player-wrap">
-        <iframe id="player-frame"
-            src="https://moviesapi.club/movie/{movie_id}"
-            allowfullscreen
-            allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
-            style="width:100%;height:650px;border:none;display:block;">
-        </iframe>
+    <div class="server-bar">
+        <a class="srv-btn" href="https://moviesapi.club/movie/{movie_id}" target="_blank">🖥 Server 1</a>
+        <a class="srv-btn" href="https://www.2embed.cc/embed/{movie_id}" target="_blank">🖥 Server 2</a>
+        <a class="srv-btn" href="https://vidsrc.rip/embed/movie/{movie_id}" target="_blank">🖥 Server 3</a>
+        <a class="srv-btn" href="https://vidsrc.xyz/embed/movie?tmdb={movie_id}" target="_blank">🖥 Server 4</a>
+    </div>
+
+    <div style="width:100%;max-width:700px;margin:30px auto;background:rgba(24,24,24,0.6);border:1px solid rgba(229,9,20,0.3);border-radius:16px;padding:40px 30px;text-align:center;backdrop-filter:blur(10px);">
+        <div style="font-size:60px;margin-bottom:15px;">🎬</div>
+        <div style="color:white;font-size:1.4rem;font-weight:700;margin-bottom:10px;">{movie_title}</div>
+        <div style="color:#a3a3a3;font-size:14px;margin-bottom:30px;line-height:1.6;">
+            Click any server button above to watch the full movie.<br>
+            If one server doesn't work, try the next one!
+        </div>
+        <a href="https://moviesapi.club/movie/{movie_id}" target="_blank"
+           style="display:inline-block;padding:14px 40px;background:linear-gradient(90deg,#e50914,#b8000b);
+                  color:white;border-radius:30px;text-decoration:none;font-weight:700;font-size:1.1rem;
+                  box-shadow:0 4px 20px rgba(229,9,20,0.5);transition:all 0.3s;">
+            ▶ Watch Now (Server 1)
+        </a>
     </div>
 
     <div class="back-bar">
         <a class="back-link" href="/">← Back to iBOMMA Rahul</a>
     </div>
 
-    <script>
-    function loadSrc(url) {{
-        document.getElementById('player-frame').src = url;
-        document.querySelectorAll('.srv-btn').forEach(b => b.classList.remove('active'));
-        event.target.classList.add('active');
-        event.preventDefault();
-    }}
-    </script>
     """, unsafe_allow_html=True)
     st.stop()
 

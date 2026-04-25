@@ -799,7 +799,8 @@ def render_movie_cards(titles, years, ratings, ids, details_list):
         genres_esc   = escape(d.get("genres", ""))
         poster_url   = escape(d.get("poster", ""))
         from urllib.parse import quote as _q
-        watch_url = f"/?watch={movie_id}&title={_q(titles[i])}"
+        # Open the standalone player.html (no Streamlit wrapper → real fullscreen works)
+        watch_url = f"/app/static/player.html?id={movie_id}&title={_q(titles[i])}"
         trailer_html = (
             f'<a href="{escape(d["trailer"])}" target="_blank" class="trailer-btn">🎬 Trailer</a>'
             if d.get("trailer") else ''
@@ -818,7 +819,7 @@ def render_movie_cards(titles, years, ratings, ids, details_list):
             f'<div class="movie-genres">{genres_esc}</div>'
             f'<div class="movie-overview">{overview_esc}</div>'
             f'<div class="btn-group">'
-            f'<a href="{watch_url}" target="_self" class="watch-btn">▶ Watch</a>'
+            f'<a href="{watch_url}" target="_blank" class="watch-btn">▶ Watch</a>'
             f'{trailer_html}'
             f'</div></div></div>'
         )

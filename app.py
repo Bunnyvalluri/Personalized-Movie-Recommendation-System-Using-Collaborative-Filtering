@@ -168,11 +168,28 @@ if "watch" in st.query_params:
     @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap');
     *, *::before, *::after {{ box-sizing: border-box; margin: 0; padding: 0; }}
     body {{ background: #050505; font-family: 'Outfit', sans-serif !important; min-height: 100vh; color: #fff; margin: 0; overflow-x: hidden; }}
+    @keyframes auroraPlayer {{
+        0%   {{ background-position: 0% 50%; }}
+        50%  {{ background-position: 100% 50%; }}
+        100% {{ background-position: 0% 50%; }}
+    }}
+    body {{ 
+        background: linear-gradient(125deg, #0a0010 0%, #130020 15%, #0d0000 30%, #000d1a 50%, #0a0010 65%, #1a0005 80%, #000010 100%);
+        background-size: 400% 400%;
+        animation: auroraPlayer 22s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+        font-family: 'Outfit', sans-serif !important; 
+        min-height: 100vh; color: #fff; margin: 0; overflow-x: hidden; 
+    }}
+    body::before {{
+        content: ""; position: fixed; inset: 0;
+        background-image: url("https://www.transparenttextures.com/patterns/carbon-fibre.png");
+        opacity: 0.04; pointer-events: none; z-index: 1;
+    }}
     .p-navbar {{
-        display: flex; align-items: center; justify-content: space-between;
-        padding: 14px 32px; background: rgba(0,0,0,0.88);
-        backdrop-filter: blur(20px); border-bottom: 1px solid rgba(229,9,20,0.2);
-        position: sticky; top: 0; z-index: 100;
+        display: flex; align-items: center; justify-content: flex-start;
+        gap: 20px; padding: 16px 32px; background: rgba(0,0,0,0.85);
+        backdrop-filter: blur(25px); border-bottom: 1px solid rgba(229,9,20,0.3);
+        position: sticky; top: 0; z-index: 9999;
     }}
     .p-logo {{ font-size: 1.6rem; font-weight: 800; color: #e50914;
         text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 0 20px rgba(229,9,20,0.6); }}
@@ -278,8 +295,8 @@ if "watch" in st.query_params:
     .p-retry {{ background:none; border:none; color:#555; font-size:12px; cursor:pointer;
         text-decoration:underline; font-family:'Outfit',sans-serif; margin-top:4px; }}
     .p-retry:hover {{ color:#aaa; }}
-    .p-footer {{ text-align:center; padding:18px; color:#3a3a3a; font-size:12px; }}
-    .p-footer span {{ color:#e50914; }}
+    .p-footer {{ text-align:center; padding:30px; color:#555; font-size:12px; font-weight: 600; letter-spacing: 1px;}}
+    .p-footer span {{ color:#ff0040; opacity: 0.8;}}
     .p-footer kbd {{
         background:#1a1a1a; border:1px solid #2a2a2a; padding:1px 7px;
         border-radius:4px; color:#888; font-size:11px; font-family:monospace;
@@ -295,9 +312,9 @@ if "watch" in st.query_params:
     <body>
 
     <nav class="p-navbar">
-        <div class="p-logo">iBOMMA RAHUL</div>
-        <!-- Use JS to navigate the parent window to avoid nesting apps in the iframe -->
+        <!-- Back button moved to left to avoid Streamlit Cloud toolbar collision -->
         <a class="p-back" onclick="window.parent.location.href='/?home=1'">← Back to Home</a>
+        <div class="p-logo">iBOMMA RAHUL</div>
     </nav>
 
     <div class="p-title-strip">
@@ -357,7 +374,7 @@ if "watch" in st.query_params:
         </div>
     </div>
 
-    <div class="p-footer">Powered by <span>iBOMMA RAHUL</span> &nbsp;•&nbsp;
+    <div class="p-footer">Powered by ⚡ Premium Streaming Servers &nbsp;•&nbsp;
         Blank? Try another server &nbsp;•&nbsp;
         <kbd>F</kbd> Fullscreen &nbsp;•&nbsp; <kbd>Esc</kbd> Exit
     </div>
@@ -504,10 +521,20 @@ footer {visibility: hidden;}
         #0a0010 0%, #130020 15%, #0d0000 30%,
         #000d1a 50%, #0a0010 65%, #1a0005 80%, #000010 100%);
     background-size: 400% 400%;
-    animation: aurora 18s ease infinite;
-    color: #e5e5e5;
+    animation: aurora 22s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+    color: #f0f0f0;
     font-family: 'Outfit', sans-serif !important;
     min-height: 100vh;
+    position: relative;
+}
+.stApp::before {
+    content: "";
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-image: url("https://www.transparenttextures.com/patterns/carbon-fibre.png");
+    opacity: 0.03;
+    pointer-events: none;
+    z-index: 0;
 }
 
 /* ── GLOWING NAVBAR ── */
@@ -517,50 +544,52 @@ footer {visibility: hidden;}
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 16px 48px;
-    background: rgba(0,0,0,0.78);
-    backdrop-filter: blur(30px);
-    border-bottom: 1px solid rgba(229,9,20,0.2);
-    box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+    padding: 20px 60px;
+    background: rgba(0,0,0,0.85);
+    backdrop-filter: blur(40px) saturate(180%);
+    border-bottom: 1px solid rgba(229,9,20,0.3);
+    box-shadow: 0 10px 50px rgba(0,0,0,0.8);
     position: sticky;
     top: 0;
-    z-index: 999;
-    margin-bottom: 0;
+    z-index: 9999;
+    margin-bottom: 40px;
 }
 .nav-logo {
-    font-size: 1.8rem;
+    font-size: 2.2rem;
     font-weight: 900;
-    background: linear-gradient(90deg, #ff4d5e, #e50914, #ff8c96, #e50914);
+    background: linear-gradient(90deg, #ff4d5e, #e50914, #ffb3b9, #e50914);
     background-size: 200% auto;
-    animation: shimmer 3s linear infinite;
+    animation: shimmer 4s linear infinite;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
     text-transform: uppercase;
-    letter-spacing: 5px;
-    filter: drop-shadow(0 0 16px rgba(229,9,20,0.5));
+    letter-spacing: 7px;
+    filter: drop-shadow(0 0 20px rgba(229,9,20,0.6));
 }
 .nav-right {
     display: flex;
     align-items: center;
-    gap: 18px;
+    gap: 24px;
 }
 .nav-tagline {
-    font-size: 0.7rem;
-    color: #444;
-    letter-spacing: 3px;
+    font-size: 0.75rem;
+    color: #888;
+    letter-spacing: 4px;
     text-transform: uppercase;
+    font-weight: 600;
 }
 .nav-badge {
-    background: linear-gradient(90deg,#e50914,#b8000b);
+    background: linear-gradient(135deg,#e50914,#9e0009);
     color:#fff;
-    font-size:10px;
-    font-weight:700;
-    padding:3px 10px;
-    border-radius:20px;
-    letter-spacing:1px;
+    font-size:11px;
+    font-weight:800;
+    padding:4px 14px;
+    border-radius:30px;
+    letter-spacing:1.5px;
     text-transform:uppercase;
-    box-shadow:0 0 12px rgba(229,9,20,0.5);
+    box-shadow: 0 0 20px rgba(229,9,20,0.4);
+    border: 1px solid rgba(255,255,255,0.1);
 }
 
 /* ── HERO REMOVED – replaced by navbar ── */
@@ -588,25 +617,26 @@ div[data-baseweb="select"] > div:hover {
 }
 
 /* ── RECOMMEND BUTTON ── */
-.stButton { display: flex; justify-content: center; margin-top: 20px; }
+.stButton { display: flex; justify-content: center; margin: 40px 0; }
 .stButton>button {
-    background: linear-gradient(90deg, #e50914, #ff2233, #b8000b) !important;
+    background: linear-gradient(90deg, #e50914, #ff2233, #8a0006) !important;
     background-size: 200% auto !important;
     color: white !important;
-    border: none !important;
-    padding: 13px 50px !important;
-    border-radius: 50px !important;
-    font-weight: 700 !important;
-    font-size: 1.1rem !important;
-    letter-spacing: 1px !important;
+    border: 1px solid rgba(255,255,255,0.1) !important;
+    padding: 16px 60px !important;
+    border-radius: 60px !important;
+    font-weight: 800 !important;
+    font-size: 1.2rem !important;
+    letter-spacing: 2px !important;
     text-transform: uppercase !important;
-    box-shadow: 0 6px 25px rgba(229,9,20,0.5) !important;
-    transition: all 0.4s ease !important;
+    box-shadow: 0 10px 30px rgba(229,9,20,0.5) !important;
+    transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
     animation: shimmer 3s linear infinite !important;
 }
 .stButton>button:hover {
-    transform: scale(1.07) translateY(-3px) !important;
-    box-shadow: 0 12px 35px rgba(229,9,20,0.7) !important;
+    transform: scale(1.08) translateY(-5px) !important;
+    box-shadow: 0 20px 45px rgba(229,9,20,0.8) !important;
+    letter-spacing: 3px !important;
 }
 
 /* ── MOVIE ROW ── */
@@ -627,18 +657,17 @@ div[data-baseweb="select"] > div:hover {
 /* ── MOVIE CARD ── */
 .movie-card {
     flex: 0 0 auto;
-    width: 240px;
-    background: rgba(14,14,20,0.88);
-    backdrop-filter: blur(24px);
-    border: 1px solid rgba(255,255,255,0.06);
-    border-radius: 20px;
+    width: 260px;
+    background: rgba(14,14,20,0.92);
+    backdrop-filter: blur(30px);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 24px;
     overflow: hidden;
-    transition: transform 0.4s cubic-bezier(0.25,0.46,0.45,0.94),
-                box-shadow 0.4s ease, border-color 0.3s ease;
-    box-shadow: 0 8px 40px rgba(0,0,0,0.7);
+    transition: all 0.5s cubic-bezier(0.2, 1, 0.3, 1);
+    box-shadow: 0 12px 50px rgba(0,0,0,0.8);
     cursor: pointer;
     opacity: 0;
-    animation: fadeInUp 0.65s ease forwards;
+    animation: fadeInUp 0.8s cubic-bezier(0.2, 1, 0.3, 1) forwards;
     display: flex;
     flex-direction: column;
     position: relative;
@@ -649,9 +678,9 @@ div[data-baseweb="select"] > div:hover {
 .movie-card:nth-child(4) { animation-delay: 0.26s; }
 .movie-card:nth-child(5) { animation-delay: 0.33s; }
 .movie-card:hover {
-    transform: scale(1.06) translateY(-14px) !important;
-    box-shadow: 0 30px 60px rgba(229,9,20,0.28), 0 10px 30px rgba(0,0,0,0.9);
-    border-color: rgba(229,9,20,0.5);
+    transform: scale(1.08) translateY(-18px) !important;
+    box-shadow: 0 40px 80px rgba(229,9,20,0.35), 0 15px 40px rgba(0,0,0,1);
+    border-color: rgba(229,9,20,0.8);
     z-index: 10;
 }
 .movie-card::before {
@@ -709,22 +738,23 @@ div[data-baseweb="select"] > div:hover {
     flex-grow: 1;
 }
 .movie-title {
-    font-size: 15px;
-    font-weight: 700;
+    font-size: 17px;
+    font-weight: 800;
     color: #fff;
-    margin-bottom: 4px;
+    margin-bottom: 6px;
     text-align: center;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    letter-spacing: 0.3px;
+    letter-spacing: 0.5px;
 }
 .movie-meta {
-    font-size: 11px;
-    color: #555;
-    margin-bottom: 8px;
+    font-size: 12px;
+    color: #888;
+    margin-bottom: 10px;
     text-align: center;
-    font-weight: 500;
+    font-weight: 600;
+    letter-spacing: 1px;
 }
 .movie-genres {
     display: flex;
@@ -745,39 +775,44 @@ div[data-baseweb="select"] > div:hover {
     background: rgba(229,9,20,0.06);
 }
 .movie-overview {
-    font-size: 11px;
-    color: #666;
-    line-height: 1.5;
-    margin-bottom: 14px;
+    font-size: 11.5px;
+    color: #888;
+    line-height: 1.6;
+    margin-bottom: 18px;
     text-align: center;
     flex-grow: 1;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
 .rating-star { color: #f5c518; font-weight: 800; }
 
-.btn-group { display: flex; gap: 8px; margin-top: auto; }
+.btn-group { display: flex; gap: 10px; margin-top: auto; }
 .watch-btn, .trailer-btn {
     flex: 1;
-    padding: 9px 6px;
+    padding: 11px 8px;
     text-align: center;
-    border-radius: 10px;
+    border-radius: 12px;
     text-decoration: none !important;
-    font-weight: 700;
-    font-size: 12px;
-    letter-spacing: 0.5px;
-    transition: all 0.28s ease;
+    font-weight: 800;
+    font-size: 13px;
+    letter-spacing: 0.8px;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 4px;
+    gap: 6px;
 }
 .watch-btn {
-    background: linear-gradient(135deg, #e50914 0%, #b8000b 100%);
+    background: linear-gradient(135deg, #e50914 0%, #a30008 100%);
     color: white !important;
-    box-shadow: 0 4px 18px rgba(229,9,20,0.35);
+    box-shadow: 0 4px 15px rgba(229,9,20,0.3);
+    border: 1px solid rgba(255,255,255,0.1);
 }
 .watch-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(229,9,20,0.6);
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 10px 25px rgba(229,9,20,0.5);
     background: linear-gradient(135deg, #ff1a28 0%, #e50914 100%);
     color: white !important;
 }
@@ -790,21 +825,22 @@ div[data-baseweb="select"] > div:hover {
     background: rgba(255,255,255,0.14);
     border-color: rgba(255,255,255,0.3);
     color: #fff !important;
-    transform: translateY(-2px);
+    transform: translateY(-3px) scale(1.02);
 }
 .section-title {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 16px;
+    gap: 20px;
     font-family: 'Outfit', sans-serif;
-    font-size: 1.4rem;
-    font-weight: 700;
+    font-size: 1.8rem;
+    font-weight: 900;
     color: #fff;
     text-transform: uppercase;
-    letter-spacing: 3px;
-    margin: 44px 0 24px;
+    letter-spacing: 5px;
+    margin: 60px 0 30px;
     padding: 0 32px;
+    text-shadow: 0 0 15px rgba(255,255,255,0.2);
 }
 .section-title::before, .section-title::after {
     content: '';
@@ -821,8 +857,17 @@ st.markdown("""
     <div class="nav-logo">iBOMMA RAHUL</div>
     <div class="nav-right">
         <div class="nav-tagline">Stream · Discover · Experience</div>
-        <div class="nav-badge">🔴 Live</div>
+        <div class="nav-badge">💎 Premium</div>
     </div>
+</div>
+
+<div style="text-align: center; padding: 40px 20px 20px;">
+    <h1 style="font-size: 3.5rem; font-weight: 900; letter-spacing: -1px; margin-bottom: 10px; background: linear-gradient(135deg, #fff 0%, #888 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+        Find Your Next Favorite Movie
+    </h1>
+    <p style="font-size: 1.1rem; color: #666; max-width: 600px; margin: 0 auto 30px; line-height: 1.6;">
+        Explore a curated collection of cinematic masterpieces. Powered by advanced collaborative filtering and real-time streaming servers.
+    </p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -947,3 +992,19 @@ else:
             render_movie_cards(t_names, t_years, t_ratings, t_ids, t_details)
         else:
             st.info("Could not load trending movies. Please check your internet connection.")
+
+st.markdown("""
+<div style="margin-top: 100px; padding: 60px 40px; background: rgba(0,0,0,0.4); border-top: 1px solid rgba(255,255,255,0.05); text-align: center;">
+    <div style="font-size: 1.5rem; font-weight: 900; letter-spacing: 4px; color: #e50914; margin-bottom: 20px;">iBOMMA RAHUL</div>
+    <div style="display: flex; justify-content: center; gap: 30px; margin-bottom: 30px;">
+        <a href="#" style="color: #666; text-decoration: none; font-size: 0.9rem; transition: color 0.3s;">Home</a>
+        <a href="#" style="color: #666; text-decoration: none; font-size: 0.9rem; transition: color 0.3s;">Movies</a>
+        <a href="#" style="color: #666; text-decoration: none; font-size: 0.9rem; transition: color 0.3s;">Trending</a>
+        <a href="#" style="color: #666; text-decoration: none; font-size: 0.9rem; transition: color 0.3s;">About</a>
+    </div>
+    <div style="color: #444; font-size: 0.8rem; letter-spacing: 1px;">
+        © 2026 iBOMMA RAHUL. ALL RIGHTS RESERVED. <br>
+        <span style="font-size: 0.7rem; margin-top: 10px; display: block;">BUILT WITH ❤️ FOR CINEMA LOVERS</span>
+    </div>
+</div>
+""", unsafe_allow_html=True)

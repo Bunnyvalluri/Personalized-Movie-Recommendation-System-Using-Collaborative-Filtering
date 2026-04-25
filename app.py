@@ -284,12 +284,27 @@ if "watch" in st.query_params:
         z-index: 1;
         border-radius: 14px;
     }}
-    /* Fullscreen: iframe fills entire screen */
-    #player-frame:fullscreen,
-    #player-frame:-webkit-full-screen,
-    #player-frame:-moz-full-screen,
-    #player-frame:-ms-fullscreen {{
-        width: 100vw !important;
+    /* Fullscreen: when the PAGE enters fullscreen, stretch player to cover it */
+    :fullscreen .p-cinema,
+    :-webkit-full-screen .p-cinema,
+    :-moz-full-screen .p-cinema,
+    :-ms-fullscreen .p-cinema {{
+        max-width: 100vw !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }}
+    :fullscreen .p-player-wrap,
+    :-webkit-full-screen .p-player-wrap,
+    :-moz-full-screen .p-player-wrap,
+    :-ms-fullscreen .p-player-wrap {{
+        border-radius: 0 !important;
+        border: none !important;
+        box-shadow: none !important;
+    }}
+    :fullscreen #player-frame,
+    :-webkit-full-screen #player-frame,
+    :-moz-full-screen #player-frame,
+    :-ms-fullscreen #player-frame {{
         height: 100vh !important;
         border-radius: 0 !important;
     }}
@@ -395,18 +410,24 @@ if "watch" in st.query_params:
     }}
 
     function goFullscreen() {{
-        var frame = document.getElementById('player-frame');
+        // We fullscreen the entire page (document.documentElement), not the iframe.
+        // This bypasses the browser's Permissions-Policy that blocks iframe fullscreen.
+        // Then CSS stretches the player to fill the full-screen viewport.
+        var doc = document.documentElement;
         if (!document.fullscreenElement && !document.webkitFullscreenElement) {{
-            // Request fullscreen directly on the iframe — it fills 100vw x 100vh
-            (frame.requestFullscreen ||
-             frame.webkitRequestFullscreen ||
-             frame.mozRequestFullScreen ||
-             frame.msRequestFullscreen).call(frame);
+            var req = doc.requestFullscreen
+                   || doc.webkitRequestFullscreen
+                   || doc.mozRequestFullScreen
+                   || doc.msRequestFullscreen;
+            if (req) req.call(doc).catch(function(err) {{
+                console.warn('Fullscreen request failed:', err);
+            }});
         }} else {{
-            (document.exitFullscreen ||
-             document.webkitExitFullscreen ||
-             document.mozCancelFullScreen ||
-             document.msExitFullscreen).call(document);
+            var exit = document.exitFullscreen
+                    || document.webkitExitFullscreen
+                    || document.mozCancelFullScreen
+                    || document.msExitFullscreen;
+            if (exit) exit.call(document);
         }}
     }}
 

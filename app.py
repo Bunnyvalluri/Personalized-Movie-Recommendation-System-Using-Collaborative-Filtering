@@ -21,35 +21,58 @@ session = requests.Session()
 retries = Retry(total=1, backoff_factor=0.1)
 session.mount('https://', HTTPAdapter(max_retries=retries))
 
-def fetch_poster(movie_id):
-    """Fetches the movie poster URL from TMDB API."""
-    tmdb_url = "https://api.themoviedb.org/3/movie/{}?api_key=8265bd1679663a7ea12ac168da84d2e8&language=en-US".format(movie_id)
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+def fetch_movie_details(movie_id):
+    """Fetches poster, trailer, overview, and genres from TMDB API."""
+    tmdb_url = f"https://api.themoviedb.org/3/movie/{movie_id}?api_key=8265bd1679663a7ea12ac168da84d2e8&language=en-US&append_to_response=videos"
+    headers = {"User-Agent": "Mozilla/5.0"}
+    
+    details = {
+        'poster': "https://placehold.co/500x750/333/FFFFFF?text=No+Poster",
+        'trailer': None,
+        'overview': "No plot summary available.",
+        'genres': ""
     }
     
-    # Try direct connection first
+    def parse_data(data):
+        if data.get('poster_path'):
+            details['poster'] = "https://media.themoviedb.org/t/p/w500" + data.get('poster_path')
+        if data.get('overview'):
+            overview = data.get('overview')
+            details['overview'] = overview[:110] + '...' if len(overview) > 110 else overview
+        if data.get('genres'):
+            details['genres'] = " • ".join([g['name'] for g in data.get('genres')[:2]])
+            
+        if 'videos' in data and 'results' in data['videos']:
+            for video in data['videos']['results']:
+                if video.get('site') == 'YouTube' and video.get('type') == 'Trailer':
+                    details['trailer'] = f"https://www.youtube.com/watch?v={video.get('key')}"
+                    break
+
     try:
-        data = session.get(tmdb_url, headers=headers, timeout=4)
-        if data.status_code == 200:
-            poster_path = data.json().get('poster_path')
-            if poster_path:
-                return "https://media.themoviedb.org/t/p/w500" + poster_path
+        data = session.get(tmdb_url, headers=headers, timeout=4).json()
+        parse_data(data)
+        return details
     except Exception:
         pass
         
-    # Fallback to proxy if blocked
-    proxy_url = "https://api.allorigins.win/raw?url=" + tmdb_url
     try:
-        data = session.get(proxy_url, headers=headers, timeout=5)
-        if data.status_code == 200:
-            poster_path = data.json().get('poster_path')
-            if poster_path:
-                return "https://media.themoviedb.org/t/p/w500" + poster_path
+        proxy_url = "https://api.allorigins.win/raw?url=" + tmdb_url
+        data = session.get(proxy_url, headers=headers, timeout=5).json()
+        parse_data(data)
     except Exception:
         pass
         
-    return "https://placehold.co/500x750/333/FFFFFF?text=No+Poster"
+    return details
+
+
+def fetch_trending():
+    """Fetches the top 5 trending movies of the week."""
+    url = "https://api.themoviedb.org/3/trending/movie/week?api_key=8265bd1679663a7ea12ac168da84d2e8"
+    try:
+        data = session.get(url, timeout=4).json()
+        return data.get('results', [])[:5]
+    except Exception:
+        return []
 
 
 def recommend(movie):
@@ -63,7 +86,6 @@ def recommend(movie):
     distances = sorted(list(enumerate(similarity[index])), reverse=True, key=lambda x: x[1])
     
     recommended_movie_names = []
-    recommended_movie_posters = []
     recommended_movie_years = []
     recommended_movie_ratings = []
 
@@ -71,20 +93,18 @@ def recommend(movie):
     top_indices = [i[0] for i in distances[1:6]]
     movie_ids = [movies.iloc[idx].movie_id for idx in top_indices]
 
-    # Fetch posters concurrently to make loading extremely fast
     with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-        posters = list(executor.map(fetch_poster, movie_ids))
+        details_list = list(executor.map(fetch_movie_details, movie_ids))
 
-    for idx, poster in zip(top_indices, posters):
-        recommended_movie_posters.append(poster)
+    for idx in top_indices:
         recommended_movie_names.append(movies.iloc[idx].title)
         recommended_movie_years.append(movies.iloc[idx].year)
         recommended_movie_ratings.append(movies.iloc[idx].vote_average)
 
-    return recommended_movie_names, recommended_movie_posters, recommended_movie_years, recommended_movie_ratings, movie_ids
+    return recommended_movie_names, recommended_movie_years, recommended_movie_ratings, movie_ids, details_list
 
 
-st.set_page_config(layout="wide", page_title="Cinephile Recommender")
+st.set_page_config(layout="wide", page_title="Cinephile AI Recommender")
 
 # Injecting Netflix-style Custom CSS
 st.markdown("""
@@ -170,7 +190,7 @@ div[data-baseweb="select"] > div:hover {
 .movie-row {
     display: flex;
     gap: 30px;
-    padding: 40px 10px;
+    padding: 20px 10px 50px 10px;
     flex-wrap: wrap;
     justify-content: center;
 }
@@ -183,7 +203,7 @@ div[data-baseweb="select"] > div:hover {
 /* Glassmorphism Movie Card */
 .movie-card {
     flex: 0 0 auto;
-    width: 220px;
+    width: 230px;
     background: rgba(24, 24, 24, 0.4);
     backdrop-filter: blur(15px);
     border: 1px solid rgba(255, 255, 255, 0.05);
@@ -195,6 +215,8 @@ div[data-baseweb="select"] > div:hover {
     opacity: 0;
     transform: translateY(30px);
     animation: fadeInUp 0.6s ease forwards;
+    display: flex;
+    flex-direction: column;
 }
 
 /* Staggered Card Animation Delays */
@@ -205,7 +227,7 @@ div[data-baseweb="select"] > div:hover {
 .movie-card:nth-child(5) { animation-delay: 0.5s; }
 
 .movie-card:hover {
-    transform: scale(1.08) translateY(-10px) !important;
+    transform: scale(1.05) translateY(-10px) !important;
     box-shadow: 0 20px 40px rgba(229, 9, 20, 0.3);
     border-color: rgba(229, 9, 20, 0.5);
     z-index: 10;
@@ -213,30 +235,52 @@ div[data-baseweb="select"] > div:hover {
 
 .movie-poster {
     width: 100%;
-    height: 330px;
+    height: 345px;
     object-fit: cover;
     border-bottom: 1px solid rgba(255,255,255,0.05);
 }
 
 .movie-info {
     padding: 15px;
-    text-align: center;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
 }
 
 .movie-title {
     font-size: 16px;
     font-weight: 600;
     color: #fff;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
+    text-align: center;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
 .movie-meta {
-    font-size: 13px;
+    font-size: 12px;
     color: #a3a3a3;
+    margin-bottom: 8px;
+    text-align: center;
+}
+
+.movie-genres {
+    font-size: 11px;
+    color: #e50914;
+    text-align: center;
+    font-weight: 600;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+}
+
+.movie-overview {
+    font-size: 11px;
+    color: #888;
+    line-height: 1.4;
     margin-bottom: 15px;
+    text-align: center;
+    flex-grow: 1;
 }
 
 .rating-star {
@@ -244,28 +288,44 @@ div[data-baseweb="select"] > div:hover {
     font-weight: 800;
 }
 
-/* Gradient Watch Now Button */
-.watch-btn {
-    display: block;
-    margin: 0 auto;
-    padding: 10px;
-    background: linear-gradient(90deg, #e50914 0%, #b8000b 100%);
-    color: white !important;
+/* Button Group */
+.btn-group {
+    display: flex;
+    gap: 8px;
+    margin-top: auto;
+}
+
+.watch-btn, .trailer-btn {
+    flex: 1;
+    padding: 8px 4px;
     text-align: center;
-    border-radius: 8px;
+    border-radius: 6px;
     text-decoration: none !important;
     font-weight: 600;
-    font-size: 14px;
+    font-size: 12px;
     transition: all 0.3s ease;
+}
+
+.watch-btn {
+    background: linear-gradient(90deg, #e50914 0%, #b8000b 100%);
+    color: white !important;
     box-shadow: 0 4px 15px rgba(229,9,20,0.3);
 }
 .watch-btn:hover {
     background: linear-gradient(90deg, #f40612 0%, #e50914 100%);
-    transform: scale(1.05);
     box-shadow: 0 6px 20px rgba(229,9,20,0.6);
 }
 
-/* Recommendations Title */
+.trailer-btn {
+    background: rgba(255,255,255,0.1);
+    color: white !important;
+    border: 1px solid rgba(255,255,255,0.2);
+}
+.trailer-btn:hover {
+    background: rgba(255,255,255,0.2);
+    border-color: #fff;
+}
+
 .section-title {
     color: white;
     text-align: center;
@@ -288,7 +348,6 @@ try:
     movies_dict = pickle.load(open('artifacts/movie_dict.pkl', 'rb'))
     movies = pd.DataFrame(movies_dict)
     
-    # Auto-generate similarity.pkl if it doesn't exist (useful for cloud deployments)
     if not os.path.exists('artifacts/similarity.pkl'):
         with st.spinner("Initializing AI Model Weights... (First time only)"):
             cv = CountVectorizer(max_features=5000, stop_words='english')
@@ -309,22 +368,53 @@ selected_movie = st.selectbox(
     movie_list
 )
 
+def render_movie_cards(titles, years, ratings, ids, details_list):
+    html_content = '<div class="movie-row">'
+    for i in range(len(titles)):
+        year = int(years[i]) if pd.notna(years[i]) else 'N/A'
+        rating = f"{ratings[i]:.1f}"
+        movie_id = ids[i]
+        d = details_list[i]
+        
+        trailer_html = f'<a href="{d["trailer"]}" target="_blank" class="trailer-btn">🎬 Trailer</a>' if d["trailer"] else ''
+        
+        html_content += f'''
+        <div class="movie-card">
+            <img src="{d["poster"]}" class="movie-poster" alt="{titles[i]}">
+            <div class="movie-info">
+                <div class="movie-title" title="{titles[i]}">{titles[i]}</div>
+                <div class="movie-meta">{year} &nbsp;•&nbsp; <span class="rating-star">{rating} ⭐</span></div>
+                <div class="movie-genres">{d["genres"]}</div>
+                <div class="movie-overview">{d["overview"]}</div>
+                <div class="btn-group">
+                    <a href="https://multiembed.mov/?video_id={movie_id}&tmdb=1" target="_blank" class="watch-btn">▶ Watch</a>
+                    {trailer_html}
+                </div>
+            </div>
+        </div>'''
+    html_content += '</div>'
+    st.markdown(html_content, unsafe_allow_html=True)
+
+
 if st.button('Show Recommendation'):
     with st.spinner('Curating recommendations...'):
-        recommended_movie_names, recommended_movie_posters, recommended_movie_years, recommended_movie_ratings, recommended_movie_ids = recommend(selected_movie)
+        r_names, r_years, r_ratings, r_ids, r_details = recommend(selected_movie)
     
-    if recommended_movie_names:
+    if r_names:
         st.markdown("<div class='section-title'>Top Picks For You</div>", unsafe_allow_html=True)
-        
-        # Build HTML for the movie row
-        html_content = '<div class="movie-row">'
-        for i in range(len(recommended_movie_names)):
-            year = int(recommended_movie_years[i]) if pd.notna(recommended_movie_years[i]) else 'N/A'
-            rating = f"{recommended_movie_ratings[i]:.1f}"
-            movie_id = recommended_movie_ids[i]
-            # Formatting as a single line to prevent Streamlit from treating indented content as a Markdown code block
-            html_content += f'<div class="movie-card"><img src="{recommended_movie_posters[i]}" class="movie-poster" alt="{recommended_movie_names[i]}"><div class="movie-info"><div class="movie-title" title="{recommended_movie_names[i]}">{recommended_movie_names[i]}</div><div class="movie-meta">{year} &nbsp;•&nbsp; <span class="rating-star">{rating} ⭐</span></div><a href="https://multiembed.mov/?video_id={movie_id}&tmdb=1" target="_blank" class="watch-btn">▶ Watch Now</a></div></div>'
-        html_content += '</div>'
-        
-        # Render the custom HTML
-        st.markdown(html_content, unsafe_allow_html=True)
+        render_movie_cards(r_names, r_years, r_ratings, r_ids, r_details)
+else:
+    # On load, show Trending movies
+    with st.spinner('Loading Trending Movies...'):
+        trending = fetch_trending()
+        if trending:
+            t_ids = [m['id'] for m in trending]
+            with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+                t_details = list(executor.map(fetch_movie_details, t_ids))
+                
+            t_names = [m['title'] for m in trending]
+            t_years = [m['year'] for m in trending]
+            t_ratings = [m['rating'] for m in trending]
+            
+            st.markdown("<div class='section-title'>🔥 Trending This Week</div>", unsafe_allow_html=True)
+            render_movie_cards(t_names, t_years, t_ratings, t_ids, t_details)

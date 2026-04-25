@@ -248,7 +248,6 @@
   }
 
   /* ── RESPONSIVE ── */
-  /* BUG FIX 10: No mobile styles — navbar/player overflowed on small screens */
   @media (max-width: 600px) {
     .navbar { padding: 12px 16px; }
     .logo { font-size: 1.2rem; letter-spacing: 1px; }
@@ -260,6 +259,78 @@
     iframe#player { height: 220px !important; }
     .footer { font-size: 11px; padding: 12px 10px; }
   }
+
+  /* ── CINEMA UNAVAILABLE BANNER ── */
+  .cinema-unavailable {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    padding: 50px 30px;
+    background: rgba(10,10,16,0.96);
+    border: 1px solid rgba(229,9,20,0.25);
+    border-radius: 16px;
+    text-align: center;
+    position: absolute;
+    inset: 0;
+    z-index: 30;
+  }
+  .cinema-unavailable.show { display: flex; }
+  .unavail-icon { font-size: 3.5rem; }
+  .unavail-title {
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: 0.5px;
+  }
+  .unavail-sub {
+    font-size: 13px;
+    color: #666;
+    max-width: 360px;
+    line-height: 1.6;
+  }
+  .unavail-links {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 4px;
+  }
+  .unavail-link {
+    padding: 10px 22px;
+    border-radius: 8px;
+    text-decoration: none !important;
+    font-weight: 700;
+    font-size: 13px;
+    transition: all 0.25s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .unavail-link.primary {
+    background: linear-gradient(135deg, #e50914, #b8000b);
+    color: #fff !important;
+    box-shadow: 0 4px 16px rgba(229,9,20,0.4);
+  }
+  .unavail-link.primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(229,9,20,0.6); }
+  .unavail-link.secondary {
+    background: rgba(255,255,255,0.07);
+    color: #ccc !important;
+    border: 1px solid rgba(255,255,255,0.14);
+  }
+  .unavail-link.secondary:hover { background: rgba(255,255,255,0.14); color: #fff !important; }
+  .retry-btn {
+    margin-top: 6px;
+    background: none;
+    border: none;
+    color: #555;
+    font-size: 12px;
+    cursor: pointer;
+    text-decoration: underline;
+    font-family: 'Outfit', sans-serif;
+  }
+  .retry-btn:hover { color: #aaa; }
 </style>
 </head>
 <body>
@@ -278,11 +349,12 @@
 
 <div class="srv-bar" role="group" aria-label="Server selection">
   <span class="srv-label">Switch Server:</span>
-  <!-- BUG FIX 5: All buttons have type=button -->
   <button class="srv-btn active" type="button" onclick="loadSrc('server1', this)" aria-pressed="true">⚡ Server 1</button>
   <button class="srv-btn" type="button" onclick="loadSrc('server2', this)" aria-pressed="false">⚡ Server 2</button>
   <button class="srv-btn" type="button" onclick="loadSrc('server3', this)" aria-pressed="false">⚡ Server 3</button>
   <button class="srv-btn" type="button" onclick="loadSrc('server4', this)" aria-pressed="false">⚡ Server 4</button>
+  <button class="srv-btn" type="button" onclick="loadSrc('server5', this)" aria-pressed="false">⚡ Server 5</button>
+  <button class="srv-btn" type="button" onclick="loadSrc('server6', this)" aria-pressed="false">⚡ Server 6</button>
 </div>
 
 <div class="cinema">
@@ -302,7 +374,21 @@
       onload="onPlayerLoad()">
     </iframe>
 
-    <!-- BUG FIX 7: type=button on fullscreen button -->
+    <!-- Cinema unavailable fallback -->
+    <div class="cinema-unavailable" id="cinema-unavailable">
+      <div class="unavail-icon">🎭</div>
+      <div class="unavail-title" id="unavail-title">Still in Cinemas!</div>
+      <div class="unavail-sub" id="unavail-sub">
+        This movie may still be in theaters or not yet available on any streaming server.
+        Try all 6 servers above, or come back in a few weeks.
+      </div>
+      <div class="unavail-links">
+        <a id="yt-link" href="#" target="_blank" class="unavail-link primary">▶ Watch Trailer on YouTube</a>
+        <a id="jw-link" href="#" target="_blank" class="unavail-link secondary">🔍 Find on JustWatch</a>
+      </div>
+      <button class="retry-btn" type="button" onclick="retryServer()">↩ Try servers again</button>
+    </div>
+
     <button class="fs-btn" id="fs-btn" type="button" onclick="toggleFullscreen()" title="Fullscreen (F)" aria-label="Toggle fullscreen">
       <svg id="icon-expand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <polyline points="15 3 21 3 21 9"></polyline>
@@ -343,28 +429,76 @@
     document.getElementById('movie-title').textContent = decodeURIComponent(title);
     document.title = 'iBOMMA RAHUL – ' + decodeURIComponent(title);
 
-    // Server URLs
+    // Server URLs – 6 sources for maximum coverage
     var servers = {
       server1: 'https://moviesapi.club/movie/' + movieId,
       server2: 'https://www.2embed.cc/embed/' + movieId,
       server3: 'https://vidsrc.rip/embed/movie/' + movieId,
-      server4: 'https://multiembed.mov/?video_id=' + movieId + '&tmdb=1'
+      server4: 'https://multiembed.mov/?video_id=' + movieId + '&tmdb=1',
+      server5: 'https://embed.su/embed/movie/' + movieId,
+      server6: 'https://vidsrc.me/embed/movie?tmdb=' + movieId
     };
 
-    // BUG FIX 13: Delay src assignment to next tick so loading overlay is visible first
+    // Delay src so loading overlay shows first
     setTimeout(function() {
       document.getElementById('player').src = servers.server1;
+      startBlankTimer();
     }, 50);
   }
 
-  // BUG FIX 9: Hide loading overlay when iframe fires its load event
+  // After 8s if player is still loading (blank server), show fallback banner
+  var blankTimer = null;
+  function startBlankTimer() {
+    clearTimeout(blankTimer);
+    blankTimer = setTimeout(function() {
+      var overlay = document.getElementById('loading-overlay');
+      // If overlay is still visible (player never fully loaded), show unavailable banner
+      if (overlay && !overlay.classList.contains('hidden')) {
+        overlay.classList.add('hidden');
+        showUnavailable();
+      }
+    }, 8000);
+  }
+
+  function showUnavailable() {
+    var banner = document.getElementById('cinema-unavailable');
+    if (!banner) return;
+    // Set dynamic links
+    var t = decodeURIComponent(title);
+    document.getElementById('yt-link').href =
+      'https://www.youtube.com/results?search_query=' + encodeURIComponent(t + ' official trailer');
+    document.getElementById('jw-link').href =
+      'https://www.justwatch.com/in/search?q=' + encodeURIComponent(t);
+    banner.classList.add('show');
+  }
+
+  function retryServer() {
+    document.getElementById('cinema-unavailable').classList.remove('show');
+    // Cycle through all servers automatically
+    var keys = ['server1','server2','server3','server4','server5','server6'];
+    var i = 0;
+    var overlay = document.getElementById('loading-overlay');
+    function tryNext() {
+      if (i >= keys.length) { showUnavailable(); return; }
+      if (overlay) overlay.classList.remove('hidden');
+      document.getElementById('player').src = servers[keys[i++]];
+      startBlankTimer();
+    }
+    tryNext();
+  }
+
+  // Hide loading overlay when iframe fires its load event
+  // Also clear the blank-detection timer
   function onPlayerLoad() {
+    clearTimeout(blankTimer);
     var overlay = document.getElementById('loading-overlay');
     if (overlay) overlay.classList.add('hidden');
   }
 
   function loadSrc(key, btn) {
-    // Show loading again when switching servers
+    // Hide unavailable banner, show loading overlay
+    var banner = document.getElementById('cinema-unavailable');
+    if (banner) banner.classList.remove('show');
     var overlay = document.getElementById('loading-overlay');
     if (overlay) overlay.classList.remove('hidden');
 
@@ -375,6 +509,7 @@
     });
     btn.classList.add('active');
     btn.setAttribute('aria-pressed', 'true');
+    startBlankTimer();
   }
 
   function goBack() {

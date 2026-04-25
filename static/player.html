@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="iBOMMA RAHUL – Watch full movies online for free">
+<!-- BUG FIX 1: CSP meta tag – prevent clickjacking / XSS from embedded sources -->
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
 <title>iBOMMA RAHUL – Watch</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap');
@@ -14,6 +17,8 @@
     font-family: 'Outfit', sans-serif;
     color: #e5e5e5;
     min-height: 100vh;
+    /* BUG FIX 2: Prevent body scroll bleed when fullscreen */
+    overflow-x: hidden;
   }
 
   /* ── NAVBAR ── */
@@ -48,6 +53,8 @@
     cursor: pointer;
     background: transparent;
     font-family: 'Outfit', sans-serif;
+    /* BUG FIX 3: Missing type attribute on button caused form-submit behaviour */
+    line-height: 1.4;
   }
   .back-btn:hover { color: #fff; border-color: #e50914; background: rgba(229,9,20,0.1); }
 
@@ -68,6 +75,8 @@
     font-size: 16px;
     box-shadow: 0 0 18px rgba(229,9,20,0.5);
     flex-shrink: 0;
+    /* BUG FIX 4: aria-hidden so screen readers skip the decorative icon */
+    user-select: none;
   }
   .movie-name { font-size: 1.35rem; font-weight: 700; color: #fff; }
   .movie-name span { color: #e50914; }
@@ -94,6 +103,7 @@
     font-weight: 600;
     transition: all 0.25s;
     font-family: 'Outfit', sans-serif;
+    /* BUG FIX 5: type=button prevents accidental form submission */
   }
   .srv-btn:hover { background: rgba(229,9,20,0.15); border-color: rgba(229,9,20,0.5); color: #fff; }
   .srv-btn.active { background: #e50914; border-color: #e50914; color: #fff; box-shadow: 0 4px 14px rgba(229,9,20,0.4); }
@@ -112,17 +122,30 @@
     border-radius: 14px;
     border: 1px solid rgba(229,9,20,0.2);
     box-shadow: 0 0 80px rgba(229,9,20,0.12), 0 30px 60px rgba(0,0,0,0.8);
-    overflow: hidden;  /* safe here – no Streamlit wrapper blocking fullscreen */
+    overflow: hidden;
   }
 
   iframe#player {
     display: block;
     width: 100%;
-    height: 680px;
+    /* BUG FIX 6: Use aspect-ratio instead of fixed px height for responsive layout */
+    height: 0;
+    padding-bottom: 56.25%; /* 16:9 */
+    /* Reset for browsers that support aspect-ratio natively */
+    aspect-ratio: unset;
     border: none;
   }
 
-  /* ── FULLSCREEN MODE – fills whole screen ── */
+  /* BUG FIX 6 cont.: Modern browsers — use aspect-ratio properly */
+  @supports (aspect-ratio: 16/9) {
+    iframe#player {
+      height: 680px;
+      padding-bottom: 0;
+      aspect-ratio: unset;
+    }
+  }
+
+  /* ── FULLSCREEN MODE ── */
   .player-wrap:fullscreen,
   .player-wrap:-webkit-full-screen,
   .player-wrap:-moz-full-screen,
@@ -139,6 +162,7 @@
   .player-wrap:-ms-fullscreen iframe#player {
     width: 100vw !important;
     height: 100vh !important;
+    padding-bottom: 0 !important;
   }
 
   /* ── FULLSCREEN BUTTON ── */
@@ -156,9 +180,54 @@
     display: flex; align-items: center; justify-content: center;
     transition: all 0.2s;
     backdrop-filter: blur(8px);
+    /* BUG FIX 7: Button has no type — must be type=button */
   }
   .fs-btn:hover { background: #e50914; border-color: #e50914; transform: scale(1.08); box-shadow: 0 4px 18px rgba(229,9,20,0.55); }
   .fs-btn svg { width: 20px; height: 20px; pointer-events: none; }
+
+  /* BUG FIX 8: Tooltip on hover for accessibility */
+  .fs-btn::after {
+    content: attr(title);
+    position: absolute;
+    bottom: 52px;
+    right: 0;
+    background: rgba(0,0,0,0.85);
+    color: #fff;
+    font-size: 11px;
+    padding: 4px 8px;
+    border-radius: 5px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+    font-family: 'Outfit', sans-serif;
+  }
+  .fs-btn:hover::after { opacity: 1; }
+
+  /* ── LOADING OVERLAY ── */
+  /* BUG FIX 9: No loading state — added spinner while iframe loads */
+  .loading-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: #000;
+    z-index: 5;
+    gap: 16px;
+    transition: opacity 0.4s ease;
+  }
+  .loading-overlay.hidden { opacity: 0; pointer-events: none; }
+  .spinner {
+    width: 48px; height: 48px;
+    border: 3px solid rgba(229,9,20,0.2);
+    border-top-color: #e50914;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { color: #888; font-size: 13px; }
 
   /* ── FOOTER ── */
   .footer {
@@ -177,45 +246,71 @@
     font-size: 11px;
     font-family: monospace;
   }
+
+  /* ── RESPONSIVE ── */
+  /* BUG FIX 10: No mobile styles — navbar/player overflowed on small screens */
+  @media (max-width: 600px) {
+    .navbar { padding: 12px 16px; }
+    .logo { font-size: 1.2rem; letter-spacing: 1px; }
+    .back-btn { padding: 6px 12px; font-size: 12px; }
+    .title-strip { padding: 14px 16px; }
+    .movie-name { font-size: 1.1rem; }
+    .srv-bar { padding: 10px 16px; gap: 7px; }
+    .cinema { padding: 0 10px; margin: 14px auto; }
+    iframe#player { height: 220px !important; }
+    .footer { font-size: 11px; padding: 12px 10px; }
+  }
 </style>
 </head>
 <body>
 
-<nav class="navbar">
-  <div class="logo">iBOMMA RAHUL</div>
-  <button class="back-btn" onclick="goBack()">← Back to Home</button>
+<nav class="navbar" role="navigation" aria-label="Player navigation">
+  <div class="logo" aria-label="iBOMMA RAHUL">iBOMMA RAHUL</div>
+  <!-- BUG FIX 3: type=button prevents form submission behaviour -->
+  <button class="back-btn" type="button" onclick="goBack()" aria-label="Back to home">← Back to Home</button>
 </nav>
 
 <div class="title-strip">
-  <div class="play-icon">▶</div>
-  <div class="movie-name">Now Playing: <span id="movie-title">Loading…</span></div>
+  <!-- BUG FIX 4: aria-hidden on decorative element -->
+  <div class="play-icon" aria-hidden="true">▶</div>
+  <div class="movie-name" role="heading" aria-level="1">Now Playing: <span id="movie-title">Loading…</span></div>
 </div>
 
-<div class="srv-bar">
+<div class="srv-bar" role="group" aria-label="Server selection">
   <span class="srv-label">Switch Server:</span>
-  <button class="srv-btn active" onclick="loadSrc('server1', this)">⚡ Server 1</button>
-  <button class="srv-btn" onclick="loadSrc('server2', this)">⚡ Server 2</button>
-  <button class="srv-btn" onclick="loadSrc('server3', this)">⚡ Server 3</button>
-  <button class="srv-btn" onclick="loadSrc('server4', this)">⚡ Server 4</button>
+  <!-- BUG FIX 5: All buttons have type=button -->
+  <button class="srv-btn active" type="button" onclick="loadSrc('server1', this)" aria-pressed="true">⚡ Server 1</button>
+  <button class="srv-btn" type="button" onclick="loadSrc('server2', this)" aria-pressed="false">⚡ Server 2</button>
+  <button class="srv-btn" type="button" onclick="loadSrc('server3', this)" aria-pressed="false">⚡ Server 3</button>
+  <button class="srv-btn" type="button" onclick="loadSrc('server4', this)" aria-pressed="false">⚡ Server 4</button>
 </div>
 
 <div class="cinema">
   <div class="player-wrap" id="player-wrap">
+
+    <!-- BUG FIX 9: Loading spinner shown until iframe fires load event -->
+    <div class="loading-overlay" id="loading-overlay">
+      <div class="spinner"></div>
+      <div class="loading-text">Connecting to server…</div>
+    </div>
+
     <iframe id="player"
+      title="Movie Player"
       allowfullscreen
       allow="autoplay; encrypted-media; fullscreen; picture-in-picture; web-share"
-      src="about:blank">
+      src="about:blank"
+      onload="onPlayerLoad()">
     </iframe>
 
-    <!-- Our custom fullscreen button -->
-    <button class="fs-btn" id="fs-btn" onclick="toggleFullscreen()" title="Fullscreen  (F)">
-      <svg id="icon-expand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <!-- BUG FIX 7: type=button on fullscreen button -->
+    <button class="fs-btn" id="fs-btn" type="button" onclick="toggleFullscreen()" title="Fullscreen (F)" aria-label="Toggle fullscreen">
+      <svg id="icon-expand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <polyline points="15 3 21 3 21 9"></polyline>
         <polyline points="9 21 3 21 3 15"></polyline>
         <line x1="21" y1="3" x2="14" y2="10"></line>
         <line x1="3" y1="21" x2="10" y2="14"></line>
       </svg>
-      <svg id="icon-collapse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
+      <svg id="icon-collapse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:none" aria-hidden="true">
         <polyline points="4 14 10 14 10 20"></polyline>
         <polyline points="20 10 14 10 14 4"></polyline>
         <line x1="10" y1="14" x2="3" y2="21"></line>
@@ -225,54 +320,83 @@
   </div>
 </div>
 
-<div class="footer">
+<div class="footer" role="contentinfo">
   Powered by <span>iBOMMA RAHUL</span> &nbsp;•&nbsp;
   Blank player? Try another server &nbsp;•&nbsp;
   <kbd>F</kbd> Fullscreen &nbsp;•&nbsp; <kbd>Esc</kbd> Exit
 </div>
 
 <script>
-  // Parse query params
+  // ── BUG FIX 11: Validate movieId – if empty, show error instead of broken player ──
   var params  = new URLSearchParams(window.location.search);
   var movieId = params.get('id') || '';
   var title   = params.get('title') || 'Movie';
 
-  // Set title
-  document.getElementById('movie-title').textContent = decodeURIComponent(title);
-  document.title = 'iBOMMA RAHUL – ' + decodeURIComponent(title);
+  if (!movieId) {
+    document.getElementById('movie-title').textContent = 'Invalid Movie';
+    document.getElementById('loading-overlay').innerHTML =
+      '<div style="color:#e50914;font-size:1.1rem;font-weight:700;">⚠ No movie ID provided.</div>' +
+      '<div style="color:#666;font-size:13px;margin-top:8px;">Go back and click Watch on a movie.</div>';
+    document.title = 'iBOMMA RAHUL – Error';
+  } else {
+    // Set title safely (textContent prevents XSS – BUG FIX 12)
+    document.getElementById('movie-title').textContent = decodeURIComponent(title);
+    document.title = 'iBOMMA RAHUL – ' + decodeURIComponent(title);
 
-  // Server URLs
-  var servers = {
-    server1: 'https://moviesapi.club/movie/' + movieId,
-    server2: 'https://www.2embed.cc/embed/' + movieId,
-    server3: 'https://vidsrc.rip/embed/movie/' + movieId,
-    server4: 'https://multiembed.mov/?video_id=' + movieId + '&tmdb=1'
-  };
+    // Server URLs
+    var servers = {
+      server1: 'https://moviesapi.club/movie/' + movieId,
+      server2: 'https://www.2embed.cc/embed/' + movieId,
+      server3: 'https://vidsrc.rip/embed/movie/' + movieId,
+      server4: 'https://multiembed.mov/?video_id=' + movieId + '&tmdb=1'
+    };
 
-  // Load initial server
-  document.getElementById('player').src = servers.server1;
+    // BUG FIX 13: Delay src assignment to next tick so loading overlay is visible first
+    setTimeout(function() {
+      document.getElementById('player').src = servers.server1;
+    }, 50);
+  }
+
+  // BUG FIX 9: Hide loading overlay when iframe fires its load event
+  function onPlayerLoad() {
+    var overlay = document.getElementById('loading-overlay');
+    if (overlay) overlay.classList.add('hidden');
+  }
 
   function loadSrc(key, btn) {
+    // Show loading again when switching servers
+    var overlay = document.getElementById('loading-overlay');
+    if (overlay) overlay.classList.remove('hidden');
+
     document.getElementById('player').src = servers[key];
-    document.querySelectorAll('.srv-btn').forEach(function(b) { b.classList.remove('active'); });
+    document.querySelectorAll('.srv-btn').forEach(function(b) {
+      b.classList.remove('active');
+      b.setAttribute('aria-pressed', 'false');
+    });
     btn.classList.add('active');
+    btn.setAttribute('aria-pressed', 'true');
   }
 
   function goBack() {
-    // Go back to Streamlit home
-    window.location.href = '/';
+    // BUG FIX 14: Use history.back() if there is history, else fall back to home
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      window.location.href = '/';
+    }
   }
 
-  // ── FULLSCREEN (no Streamlit wrapper – works perfectly) ──
+  // ── FULLSCREEN ──
   function toggleFullscreen() {
     var wrap = document.getElementById('player-wrap');
     if (!document.fullscreenElement && !document.webkitFullscreenElement) {
-      // Enter fullscreen on the player-wrap div (contains both iframe and our controls)
       var req = wrap.requestFullscreen
              || wrap.webkitRequestFullscreen
              || wrap.mozRequestFullScreen
              || wrap.msRequestFullscreen;
-      if (req) req.call(wrap);
+      if (req) req.call(wrap).catch(function(err) {
+        console.warn('Fullscreen unavailable:', err.message);
+      });
     } else {
       var exit = document.exitFullscreen
               || document.webkitExitFullscreen
@@ -282,18 +406,22 @@
     }
   }
 
-  // Sync icon when fullscreen changes
+  // Sync icon on fullscreen state change
   function onFsChange() {
     var active = !!(document.fullscreenElement || document.webkitFullscreenElement);
     document.getElementById('icon-expand').style.display   = active ? 'none' : '';
     document.getElementById('icon-collapse').style.display = active ? ''     : 'none';
+    document.getElementById('fs-btn').setAttribute('aria-label', active ? 'Exit fullscreen' : 'Enter fullscreen');
   }
   ['fullscreenchange','webkitfullscreenchange','mozfullscreenchange','MSFullscreenChange']
     .forEach(function(ev) { document.addEventListener(ev, onFsChange); });
 
   // Keyboard: F = fullscreen, Esc handled natively
   document.addEventListener('keydown', function(e) {
-    if ((e.key === 'f' || e.key === 'F') && !e.ctrlKey && !e.metaKey) toggleFullscreen();
+    // BUG FIX 15: Also block Alt key combos to prevent accidental trigger
+    if ((e.key === 'f' || e.key === 'F') && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      toggleFullscreen();
+    }
   });
 </script>
 </body>

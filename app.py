@@ -21,14 +21,18 @@ HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/
 
 def tmdb_get(path):
     """Fetch a TMDB API path, trying proxy first then direct."""
+    from urllib.parse import quote
     direct = f"https://api.themoviedb.org/3/{path}&api_key={TMDB_KEY}"
-    proxy  = f"https://api.codetabs.com/v1/proxy?quest={direct}"
-    
+    # URL-encode the inner URL so codetabs proxy doesn't misparse the & symbols
+    proxy = f"https://api.codetabs.com/v1/proxy?quest={quote(direct, safe='')}"
+
     # Try proxy first (works when TMDB is ISP-blocked)
     try:
-        r = session.get(proxy, headers=HEADERS, timeout=8)
+        r = session.get(proxy, headers=HEADERS, timeout=10)
         if r.status_code == 200:
-            return r.json()
+            data = r.json()
+            if data and not data.get('error'):
+                return data
     except Exception:
         pass
 
@@ -41,6 +45,7 @@ def tmdb_get(path):
         pass
 
     return {}
+
 
 
 def fetch_movie_details(movie_id):

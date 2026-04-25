@@ -89,9 +89,9 @@ def fetch_movie_details(movie_id):
 
 @st.cache_data(ttl=TRENDING_TTL, show_spinner=False)
 def fetch_trending():
-    """Fetches the top 5 trending movies of the week. Cached for 30 minutes."""
+    """Fetches the top 10 trending movies of the week. Cached for 30 minutes."""
     data = tmdb_get("trending/movie/week?")
-    return data.get('results', [])[:5] if data else []
+    return data.get('results', [])[:10] if data else []
 
 
 
@@ -988,19 +988,18 @@ else:
             t_years   = [safe_year(m.get('release_date', '')) for m in trending]
             t_ratings = [safe_rating(m.get('vote_average', 0)) for m in trending]
 
-            st.markdown("<div class='section-title'>🔥 Trending This Week</div>", unsafe_allow_html=True)
+            st.markdown("<div class='section-title'>🔥 Trending This Week <span style='font-size:0.8rem; vertical-align:middle; margin-left:10px; background:rgba(229,9,20,0.1); padding:4px 12px; border-radius:20px; border:1px solid rgba(229,9,20,0.3); color:#e50914; letter-spacing:1px;'>🔴 LIVE</span></div>", unsafe_allow_html=True)
             render_movie_cards(t_names, t_years, t_ratings, t_ids, t_details)
         else:
             st.info("Could not load trending movies. Please check your internet connection.")
 
 st.markdown("""
-<div style="margin-top: 100px; padding: 60px 40px; background: rgba(0,0,0,0.4); border-top: 1px solid rgba(255,255,255,0.05); text-align: center;">
-    <div style="font-size: 1.5rem; font-weight: 900; letter-spacing: 4px; color: #e50914; margin-bottom: 20px;">iBOMMA RAHUL</div>
-    <div style="display: flex; justify-content: center; gap: 30px; margin-bottom: 30px;">
-        <a href="#" style="color: #666; text-decoration: none; font-size: 0.9rem; transition: color 0.3s;">Home</a>
-        <a href="#" style="color: #666; text-decoration: none; font-size: 0.9rem; transition: color 0.3s;">Movies</a>
-        <a href="#" style="color: #666; text-decoration: none; font-size: 0.9rem; transition: color 0.3s;">Trending</a>
-        <a href="#" style="color: #666; text-decoration: none; font-size: 0.9rem; transition: color 0.3s;">About</a>
+<div style="margin-top: 100px; padding: 80px 40px; background: rgba(0,0,0,0.5); border-top: 1px solid rgba(255,255,255,0.05); text-align: center;">
+    <div style="display: flex; justify-content: center; gap: 40px; margin-bottom: 40px;">
+        <a href="/" style="color: #888; text-decoration: none; font-size: 0.85rem; transition: color 0.3s; text-transform: uppercase; letter-spacing: 2px; font-weight: 700;">Home</a>
+        <a href="#" style="color: #888; text-decoration: none; font-size: 0.85rem; transition: color 0.3s; text-transform: uppercase; letter-spacing: 2px; font-weight: 700;">Movies</a>
+        <a href="#" style="color: #888; text-decoration: none; font-size: 0.85rem; transition: color 0.3s; text-transform: uppercase; letter-spacing: 2px; font-weight: 700;">Trending</a>
+        <a href="#" style="color: #888; text-decoration: none; font-size: 0.85rem; transition: color 0.3s; text-transform: uppercase; letter-spacing: 2px; font-weight: 700;">About</a>
     </div>
     <div style="color: #444; font-size: 0.8rem; letter-spacing: 1px;">
         © 2026 iBOMMA RAHUL. ALL RIGHTS RESERVED. <br>

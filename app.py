@@ -463,85 +463,85 @@ if "watch" in st.query_params:
 # ─── CSS ──────────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800;900&display=swap');
 
 header {visibility: hidden;}
 #MainMenu {visibility: hidden;}
 footer {visibility: hidden;}
+.block-container { padding-top: 0 !important; max-width: 100% !important; }
 
-/* ── ANIMATED BACKGROUND ── */
-@keyframes bgShift {
+/* ── AURORA BACKGROUND ── */
+@keyframes aurora {
     0%   { background-position: 0% 50%; }
     50%  { background-position: 100% 50%; }
     100% { background-position: 0% 50%; }
 }
 .stApp {
-    background: linear-gradient(135deg, #0d0000 0%, #1a0000 20%, #0a0a0a 50%, #000814 80%, #050005 100%);
+    background: linear-gradient(125deg,
+        #0a0010 0%, #130020 15%, #0d0000 30%,
+        #000d1a 50%, #0a0010 65%, #1a0005 80%, #000010 100%);
     background-size: 400% 400%;
-    animation: bgShift 12s ease infinite;
+    animation: aurora 18s ease infinite;
     color: #e5e5e5;
     font-family: 'Outfit', sans-serif !important;
+    min-height: 100vh;
 }
 
 /* ── GLOWING NAVBAR ── */
+@keyframes shimmer { to { background-position: 200% center; } }
+
 .main-nav {
     display: flex;
     align-items: center;
-    justify-content: center;
-    padding: 18px 40px;
-    background: rgba(0,0,0,0.6);
-    backdrop-filter: blur(24px);
-    border-bottom: 1px solid rgba(229,9,20,0.25);
-    margin-bottom: 10px;
-    box-shadow: 0 4px 30px rgba(0,0,0,0.5);
+    justify-content: space-between;
+    padding: 16px 48px;
+    background: rgba(0,0,0,0.78);
+    backdrop-filter: blur(30px);
+    border-bottom: 1px solid rgba(229,9,20,0.2);
+    box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+    position: sticky;
+    top: 0;
+    z-index: 999;
+    margin-bottom: 0;
 }
 .nav-logo {
-    font-size: 2.2rem;
-    font-weight: 800;
-    background: linear-gradient(90deg, #ff2233, #e50914, #ff6666);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    text-transform: uppercase;
-    letter-spacing: 4px;
-    filter: drop-shadow(0 0 12px rgba(229,9,20,0.7));
-}
-.nav-tagline {
-    font-size: 0.75rem;
-    color: #666;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    text-align: center;
-    margin-top: 2px;
-}
-
-/* ── HERO AREA ── */
-.hero-title {
-    font-family: 'Outfit', sans-serif;
-    background: linear-gradient(90deg, #ff2233, #e50914, #ff6666, #e50914);
+    font-size: 1.8rem;
+    font-weight: 900;
+    background: linear-gradient(90deg, #ff4d5e, #e50914, #ff8c96, #e50914);
     background-size: 200% auto;
     animation: shimmer 3s linear infinite;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    font-weight: 800;
-    font-size: 4rem;
-    text-align: center;
+    background-clip: text;
     text-transform: uppercase;
-    letter-spacing: 4px;
-    margin-top: 0.5rem;
-    margin-bottom: 0.3rem;
+    letter-spacing: 5px;
+    filter: drop-shadow(0 0 16px rgba(229,9,20,0.5));
 }
-@keyframes shimmer {
-    to { background-position: 200% center; }
+.nav-right {
+    display: flex;
+    align-items: center;
+    gap: 18px;
 }
-.hero-subtitle {
-    text-align: center;
-    color: #666;
-    font-size: 1rem;
-    margin-bottom: 2.5rem;
-    font-weight: 300;
-    letter-spacing: 2px;
+.nav-tagline {
+    font-size: 0.7rem;
+    color: #444;
+    letter-spacing: 3px;
     text-transform: uppercase;
 }
+.nav-badge {
+    background: linear-gradient(90deg,#e50914,#b8000b);
+    color:#fff;
+    font-size:10px;
+    font-weight:700;
+    padding:3px 10px;
+    border-radius:20px;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    box-shadow:0 0 12px rgba(229,9,20,0.5);
+}
+
+/* ── HERO REMOVED – replaced by navbar ── */
+@keyframes shimmer2 { to { background-position: 200% center; } }
 
 /* ── SEARCH AREA ── */
 .stSelectbox label {
@@ -589,8 +589,8 @@ div[data-baseweb="select"] > div:hover {
 /* ── MOVIE ROW ── */
 .movie-row {
     display: flex;
-    gap: 24px;
-    padding: 20px 20px 60px;
+    gap: 20px;
+    padding: 10px 32px 60px;
     flex-wrap: wrap;
     justify-content: center;
 }
@@ -604,44 +604,46 @@ div[data-baseweb="select"] > div:hover {
 /* ── MOVIE CARD ── */
 .movie-card {
     flex: 0 0 auto;
-    width: 220px;
-    background: rgba(18, 18, 18, 0.7);
-    backdrop-filter: blur(20px);
+    width: 240px;
+    background: rgba(14,14,20,0.88);
+    backdrop-filter: blur(24px);
     border: 1px solid rgba(255,255,255,0.06);
-    border-radius: 18px;
+    border-radius: 20px;
     overflow: hidden;
-    transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-    box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+    transition: transform 0.4s cubic-bezier(0.25,0.46,0.45,0.94),
+                box-shadow 0.4s ease, border-color 0.3s ease;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.7);
     cursor: pointer;
     opacity: 0;
-    transform: translateY(40px);
-    animation: fadeInUp 0.7s ease forwards;
+    animation: fadeInUp 0.65s ease forwards;
     display: flex;
     flex-direction: column;
     position: relative;
 }
 .movie-card:nth-child(1) { animation-delay: 0.05s; }
-.movie-card:nth-child(2) { animation-delay: 0.15s; }
-.movie-card:nth-child(3) { animation-delay: 0.25s; }
-.movie-card:nth-child(4) { animation-delay: 0.35s; }
-.movie-card:nth-child(5) { animation-delay: 0.45s; }
-.movie-card::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: 18px;
-    background: linear-gradient(135deg, rgba(229,9,20,0.08), transparent);
-    opacity: 0;
-    transition: opacity 0.4s;
-    pointer-events: none;
-}
-.movie-card:hover::after { opacity: 1; }
+.movie-card:nth-child(2) { animation-delay: 0.12s; }
+.movie-card:nth-child(3) { animation-delay: 0.19s; }
+.movie-card:nth-child(4) { animation-delay: 0.26s; }
+.movie-card:nth-child(5) { animation-delay: 0.33s; }
 .movie-card:hover {
-    transform: scale(1.07) translateY(-12px) !important;
-    box-shadow: 0 25px 50px rgba(229,9,20,0.25), 0 10px 20px rgba(0,0,0,0.8);
-    border-color: rgba(229,9,20,0.4);
+    transform: scale(1.06) translateY(-14px) !important;
+    box-shadow: 0 30px 60px rgba(229,9,20,0.28), 0 10px 30px rgba(0,0,0,0.9);
+    border-color: rgba(229,9,20,0.5);
     z-index: 10;
 }
+.movie-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 10%; right: 10%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #e50914, transparent);
+    border-radius: 2px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    z-index: 2;
+    pointer-events: none;
+}
+.movie-card:hover::before { opacity: 1; }
 
 /* ── POSTER AREA WITH OVERLAY ── */
 .poster-wrap {
@@ -650,108 +652,153 @@ div[data-baseweb="select"] > div:hover {
 }
 .movie-poster {
     width: 100%;
-    height: 320px;
+    height: 340px;
     object-fit: cover;
     display: block;
-    transition: transform 0.5s ease;
+    transition: transform 0.55s ease;
 }
-.movie-card:hover .movie-poster { transform: scale(1.05); }
+.movie-card:hover .movie-poster { transform: scale(1.07); }
 .poster-overlay {
     position: absolute;
     bottom: 0; left: 0; right: 0;
-    height: 60%;
-    background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 100%);
+    height: 65%;
+    background: linear-gradient(to top, rgba(10,10,16,0.98) 0%, rgba(10,10,16,0.4) 55%, transparent 100%);
+}
+.rating-badge {
+    position: absolute;
+    top: 10px; right: 10px;
+    background: rgba(0,0,0,0.72);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(229,9,20,0.4);
+    border-radius: 7px;
+    padding: 3px 8px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #fff;
+    z-index: 3;
 }
 
 /* ── CARD INFO ── */
 .movie-info {
-    padding: 14px;
+    padding: 14px 16px 16px;
     display: flex;
     flex-direction: column;
     flex-grow: 1;
-    border-top: 1px solid rgba(255,255,255,0.05);
 }
 .movie-title {
     font-size: 15px;
     font-weight: 700;
     color: #fff;
-    margin-bottom: 5px;
+    margin-bottom: 4px;
     text-align: center;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    letter-spacing: 0.3px;
 }
 .movie-meta {
     font-size: 11px;
-    color: #777;
-    margin-bottom: 7px;
+    color: #555;
+    margin-bottom: 8px;
     text-align: center;
+    font-weight: 500;
 }
 .movie-genres {
-    font-size: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    justify-content: center;
+    margin-bottom: 10px;
+}
+.genre-tag {
+    font-size: 9px;
     color: #e50914;
-    text-align: center;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 8px;
+    letter-spacing: 0.8px;
+    border: 1px solid rgba(229,9,20,0.3);
+    border-radius: 4px;
+    padding: 2px 7px;
+    background: rgba(229,9,20,0.06);
 }
 .movie-overview {
     font-size: 11px;
-    color: #888;
-    line-height: 1.4;
-    margin-bottom: 15px;
+    color: #666;
+    line-height: 1.5;
+    margin-bottom: 14px;
     text-align: center;
     flex-grow: 1;
 }
-.rating-star { color: #e50914; font-weight: 800; }
+.rating-star { color: #f5c518; font-weight: 800; }
 
 .btn-group { display: flex; gap: 8px; margin-top: auto; }
 .watch-btn, .trailer-btn {
     flex: 1;
-    padding: 8px 4px;
+    padding: 9px 6px;
     text-align: center;
-    border-radius: 6px;
+    border-radius: 10px;
     text-decoration: none !important;
-    font-weight: 600;
+    font-weight: 700;
     font-size: 12px;
-    transition: all 0.3s ease;
+    letter-spacing: 0.5px;
+    transition: all 0.28s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
 }
 .watch-btn {
-    background: linear-gradient(90deg, #e50914 0%, #b8000b 100%);
+    background: linear-gradient(135deg, #e50914 0%, #b8000b 100%);
     color: white !important;
-    box-shadow: 0 4px 15px rgba(229,9,20,0.3);
+    box-shadow: 0 4px 18px rgba(229,9,20,0.35);
 }
 .watch-btn:hover {
-    background: linear-gradient(90deg, #f40612 0%, #e50914 100%);
-    box-shadow: 0 6px 20px rgba(229,9,20,0.6);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(229,9,20,0.6);
+    background: linear-gradient(135deg, #ff1a28 0%, #e50914 100%);
+    color: white !important;
 }
 .trailer-btn {
-    background: rgba(255,255,255,0.1);
-    color: white !important;
-    border: 1px solid rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.06);
+    color: #ccc !important;
+    border: 1px solid rgba(255,255,255,0.12);
 }
 .trailer-btn:hover {
-    background: rgba(255,255,255,0.2);
-    border-color: #fff;
+    background: rgba(255,255,255,0.14);
+    border-color: rgba(255,255,255,0.3);
+    color: #fff !important;
+    transform: translateY(-2px);
 }
 .section-title {
-    color: white;
-    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
     font-family: 'Outfit', sans-serif;
-    font-weight: 300;
-    font-size: 2.2rem;
-    margin-top: 40px;
-    margin-bottom: 10px;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #fff;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    margin: 44px 0 24px;
+    padding: 0 32px;
+}
+.section-title::before, .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(229,9,20,0.5), transparent);
+    max-width: 200px;
 }
 </style>
 """, unsafe_allow_html=True)
 
 st.markdown("""
 <div class="main-nav">
-    <div>
-        <div class="nav-logo">iBOMMA RAHUL</div>
+    <div class="nav-logo">iBOMMA RAHUL</div>
+    <div class="nav-right">
         <div class="nav-tagline">Stream · Discover · Experience</div>
+        <div class="nav-badge">🔴 Live</div>
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -810,15 +857,20 @@ def render_movie_cards(titles, years, ratings, ids, details_list):
 
         title_esc    = escape(titles[i])
         overview_esc = escape(d.get("overview", ""))
-        genres_esc   = escape(d.get("genres", ""))
+        genres_raw   = d.get("genres", "")
         poster_url   = escape(d.get("poster", ""))
         from urllib.parse import quote as _q
-        # Open the standalone player.html (no Streamlit wrapper → real fullscreen works)
         watch_url = f"/app/static/player.html?id={movie_id}&title={_q(titles[i])}"
         trailer_html = (
             f'<a href="{escape(d["trailer"])}" target="_blank" class="trailer-btn">🎬 Trailer</a>'
             if d.get("trailer") else ''
         )
+
+        # Build genre pills
+        genre_pills = ""
+        for g in genres_raw.split(" • "):
+            if g.strip():
+                genre_pills += f'<span class="genre-tag">{escape(g.strip())}</span>'
 
         cards_html += (
             f'<div class="movie-card">'
@@ -826,11 +878,12 @@ def render_movie_cards(titles, years, ratings, ids, details_list):
             f'<img src="{poster_url}" class="movie-poster" alt="{title_esc}" '
             f'onerror="this.src=\'https://placehold.co/500x750/111/FFFFFF?text=No+Poster\'">'
             f'<div class="poster-overlay"></div>'
+            f'<div class="rating-badge">⭐ {rating}</div>'
             f'</div>'
             f'<div class="movie-info">'
             f'<div class="movie-title" title="{title_esc}">{title_esc}</div>'
-            f'<div class="movie-meta">{year} &nbsp;•&nbsp; <span class="rating-star">{rating} ⭐</span></div>'
-            f'<div class="movie-genres">{genres_esc}</div>'
+            f'<div class="movie-meta">{year}</div>'
+            f'<div class="movie-genres">{genre_pills}</div>'
             f'<div class="movie-overview">{overview_esc}</div>'
             f'<div class="btn-group">'
             f'<a href="{watch_url}" target="_blank" class="watch-btn">▶ Watch</a>'

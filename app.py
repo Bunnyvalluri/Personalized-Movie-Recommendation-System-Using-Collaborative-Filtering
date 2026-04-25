@@ -89,6 +89,11 @@ st.set_page_config(layout="wide", page_title="Cinephile Recommender")
 # Injecting Netflix-style Custom CSS
 st.markdown("""
 <style>
+/* Hide Streamlit header (Star icon), menu, and footer */
+header {visibility: hidden;}
+#MainMenu {visibility: hidden;}
+footer {visibility: hidden;}
+
 /* Netflix Background and Font */
 .stApp {
     background-color: #141414;

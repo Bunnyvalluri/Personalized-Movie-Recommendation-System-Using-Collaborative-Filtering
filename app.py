@@ -754,8 +754,6 @@ st.markdown("""
         <div class="nav-tagline">Stream · Discover · Experience</div>
     </div>
 </div>
-<div class="hero-title">iBOMMA RAHUL</div>
-<div class="hero-subtitle">Stream · Discover · Experience</div>
 """, unsafe_allow_html=True)
 
 # ─── LOAD DATA (cached – loads once per server session) ───────────────────────

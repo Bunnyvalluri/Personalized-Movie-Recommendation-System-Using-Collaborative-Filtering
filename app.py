@@ -104,7 +104,7 @@ def recommend(movie):
     return recommended_movie_names, recommended_movie_years, recommended_movie_ratings, movie_ids, details_list
 
 
-st.set_page_config(layout="wide", page_title="Cinephile AI Recommender")
+st.set_page_config(layout="wide", page_title="iBOMMA Rahul")
 
 # Injecting Netflix-style Custom CSS
 st.markdown("""
@@ -339,7 +339,7 @@ div[data-baseweb="select"] > div:hover {
 """, unsafe_allow_html=True)
 
 st.markdown("""
-<div class="hero-title">CINEPHILE AI</div>
+<div class="hero-title">iBOMMA RAHUL</div>
 <div class="hero-subtitle">Discover and stream your next favorite movie instantly.</div>
 """, unsafe_allow_html=True)
 

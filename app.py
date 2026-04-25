@@ -12,6 +12,9 @@ import pandas as pd
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 import concurrent.futures
+import os
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 
 # Configure requests session with minimal retries to fail fast
 session = requests.Session()
@@ -199,9 +202,19 @@ st.title('Cinephile AI Recommender')
 try:
     movies_dict = pickle.load(open('artifacts/movie_dict.pkl', 'rb'))
     movies = pd.DataFrame(movies_dict)
-    similarity = pickle.load(open('artifacts/similarity.pkl', 'rb'))
+    
+    # Auto-generate similarity.pkl if it doesn't exist (useful for cloud deployments)
+    if not os.path.exists('artifacts/similarity.pkl'):
+        with st.spinner("Initializing AI Model Weights... (First time only)"):
+            cv = CountVectorizer(max_features=5000, stop_words='english')
+            vectors = cv.fit_transform(movies['tags']).toarray()
+            similarity = cosine_similarity(vectors)
+            pickle.dump(similarity, open('artifacts/similarity.pkl', 'wb'))
+    else:
+        similarity = pickle.load(open('artifacts/similarity.pkl', 'rb'))
+        
 except FileNotFoundError:
-    st.error("Model files not found. Please run the data processing notebook first.")
+    st.error("Core dataset 'movie_dict.pkl' not found. Please ensure it's placed in the 'artifacts/' folder.")
     st.stop()
 
 

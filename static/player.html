@@ -439,25 +439,37 @@
       server6: 'https://vidsrc.me/embed/movie?tmdb=' + movieId
     };
 
+    // Animated dots on loading text
+    var dotEl = document.querySelector('.loading-text');
+    if (dotEl) {
+      var dots = 0;
+      setInterval(function() {
+        dots = (dots + 1) % 4;
+        dotEl.textContent = 'Connecting to server' + '.'.repeat(dots);
+      }, 500);
+    }
+
     // Delay src so loading overlay shows first
     setTimeout(function() {
+      realSrcLoaded = true;  // now onPlayerLoad should react
       document.getElementById('player').src = servers.server1;
       startBlankTimer();
     }, 50);
   }
 
-  // After 8s if player is still loading (blank server), show fallback banner
+  // After 5s if player is still loading (blank server), show fallback banner
   var blankTimer = null;
+  var realSrcLoaded = false;  // ignore initial about:blank onload
+
   function startBlankTimer() {
     clearTimeout(blankTimer);
     blankTimer = setTimeout(function() {
       var overlay = document.getElementById('loading-overlay');
-      // If overlay is still visible (player never fully loaded), show unavailable banner
       if (overlay && !overlay.classList.contains('hidden')) {
         overlay.classList.add('hidden');
         showUnavailable();
       }
-    }, 8000);
+    }, 5000);  // 5 seconds
   }
 
   function showUnavailable() {
@@ -487,9 +499,10 @@
     tryNext();
   }
 
-  // Hide loading overlay when iframe fires its load event
-  // Also clear the blank-detection timer
+  // Hide loading overlay when iframe fires load event
+  // Guard with realSrcLoaded flag to skip the initial about:blank fire
   function onPlayerLoad() {
+    if (!realSrcLoaded) return;
     clearTimeout(blankTimer);
     var overlay = document.getElementById('loading-overlay');
     if (overlay) overlay.classList.add('hidden');

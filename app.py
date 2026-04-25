@@ -359,6 +359,8 @@ if "watch" in st.query_params:
     }};
 
     var blankTimer = null;
+    var realSrcLoaded = false;  // flag: ignore onload from about:blank
+
     function startTimer() {{
         clearTimeout(blankTimer);
         blankTimer = setTimeout(function() {{
@@ -367,7 +369,7 @@ if "watch" in st.query_params:
                 ld.classList.add('hidden');
                 showUnavail();
             }}
-        }}, 8000);
+        }}, 5000);  // 5 seconds — faster than 8s
     }}
 
     function showUnavail() {{
@@ -392,6 +394,8 @@ if "watch" in st.query_params:
     }}
 
     function onLoad() {{
+        // Ignore the initial about:blank fire — only react to real src loads
+        if (!realSrcLoaded) return;
         clearTimeout(blankTimer);
         var ld = document.getElementById('pload');
         if (ld) ld.classList.add('hidden');
@@ -434,8 +438,19 @@ if "watch" in st.query_params:
         if ((e.key==='f'||e.key==='F') && !e.ctrlKey && !e.metaKey && !e.altKey) goFullscreen();
     }});
 
-    // Start loading server 1 after a short delay
+    // Animated loading dots
+    var dotEl = document.querySelector('.p-loading-text');
+    if (dotEl) {{
+        var dots = 0;
+        setInterval(function() {{
+            dots = (dots + 1) % 4;
+            dotEl.textContent = 'Connecting to server' + '.'.repeat(dots);
+        }}, 500);
+    }}
+
+    // Start loading server 1 after short delay
     setTimeout(function() {{
+        realSrcLoaded = true;  // now onLoad should react
         document.getElementById('player-frame').src = servers.s1;
         startTimer();
     }}, 80);

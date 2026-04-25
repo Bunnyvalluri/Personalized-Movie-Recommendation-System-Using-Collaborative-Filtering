@@ -214,17 +214,18 @@ if "watch" in st.query_params:
     <div class="player-title">▶ <span>{movie_title}</span></div>
 
     <div class="server-bar">
-        <a class="srv-btn active" onclick="loadSrc('https://vidsrc.rip/embed/movie/{movie_id}')" href="#">🖥 Server 1</a>
+        <a class="srv-btn active" onclick="loadSrc('https://moviesapi.club/movie/{movie_id}')" href="#">🖥 Server 1</a>
         <a class="srv-btn" onclick="loadSrc('https://www.2embed.cc/embed/{movie_id}')" href="#">🖥 Server 2</a>
-        <a class="srv-btn" onclick="loadSrc('https://moviesapi.club/movie/{movie_id}')" href="#">🖥 Server 3</a>
+        <a class="srv-btn" onclick="loadSrc('https://vidsrc.rip/embed/movie/{movie_id}')" href="#">🖥 Server 3</a>
         <a class="srv-btn" onclick="loadSrc('https://multiembed.mov/?video_id={movie_id}&tmdb=1')" href="#">🖥 Server 4</a>
     </div>
 
     <div class="player-wrap">
         <iframe id="player-frame"
-            src="https://vidsrc.rip/embed/movie/{movie_id}"
+            src="https://moviesapi.club/movie/{movie_id}"
             allowfullscreen
-            allow="autoplay; encrypted-media; fullscreen; picture-in-picture">
+            allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+            style="width:100%;height:650px;border:none;display:block;">
         </iframe>
     </div>
 

@@ -131,7 +131,118 @@ def recommend(movie):
 
 
 # ─── PAGE CONFIG ──────────────────────────────────────────────────────────────
-st.set_page_config(layout="wide", page_title="iBOMMA Rahul")
+st.set_page_config(layout="wide", page_title="iBOMMA Rahul - Watch")
+
+# ─── INTERNAL MOVIE PLAYER ROUTE ─────────────────────────────────────────────
+if "watch" in st.query_params:
+    movie_id = st.query_params.get("watch", "")
+    movie_title = st.query_params.get("title", "Movie")
+
+    st.markdown(f"""
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap');
+    header {{visibility: hidden;}} #MainMenu {{visibility: hidden;}} footer {{visibility: hidden;}}
+    .stApp {{
+        background: #0a0a0a;
+        font-family: 'Outfit', sans-serif !important;
+    }}
+    .player-title {{
+        color: white;
+        font-size: 1.8rem;
+        font-weight: 700;
+        text-align: center;
+        margin: 15px 0 5px 0;
+        text-shadow: 0 0 20px rgba(229,9,20,0.4);
+    }}
+    .player-title span {{ color: #e50914; }}
+    .server-bar {{
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        margin: 15px 0;
+        flex-wrap: wrap;
+    }}
+    .srv-btn {{
+        padding: 8px 22px;
+        border-radius: 20px;
+        border: 1px solid rgba(255,255,255,0.2);
+        background: rgba(255,255,255,0.08);
+        color: white !important;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 600;
+        text-decoration: none !important;
+        transition: all 0.3s;
+    }}
+    .srv-btn:hover, .srv-btn.active {{
+        background: #e50914;
+        border-color: #e50914;
+        box-shadow: 0 4px 15px rgba(229,9,20,0.4);
+    }}
+    .player-wrap {{
+        width: 100%;
+        max-width: 1080px;
+        margin: 0 auto;
+        background: #000;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 0 60px rgba(229,9,20,0.2);
+        border: 1px solid rgba(229,9,20,0.3);
+    }}
+    #player-frame {{
+        width: 100%;
+        height: 600px;
+        border: none;
+        display: block;
+    }}
+    .back-bar {{
+        text-align: center;
+        margin-top: 20px;
+    }}
+    .back-link {{
+        color: #a3a3a3 !important;
+        text-decoration: none !important;
+        font-size: 14px;
+        border: 1px solid #333;
+        padding: 8px 20px;
+        border-radius: 20px;
+        transition: all 0.3s;
+    }}
+    .back-link:hover {{ color: white !important; border-color: #666; }}
+    </style>
+
+    <div class="player-title">▶ <span>{movie_title}</span></div>
+
+    <div class="server-bar">
+        <a class="srv-btn active" onclick="loadSrc('https://vidsrc.rip/embed/movie/{movie_id}')" href="#">🖥 Server 1</a>
+        <a class="srv-btn" onclick="loadSrc('https://www.2embed.cc/embed/{movie_id}')" href="#">🖥 Server 2</a>
+        <a class="srv-btn" onclick="loadSrc('https://moviesapi.club/movie/{movie_id}')" href="#">🖥 Server 3</a>
+        <a class="srv-btn" onclick="loadSrc('https://multiembed.mov/?video_id={movie_id}&tmdb=1')" href="#">🖥 Server 4</a>
+    </div>
+
+    <div class="player-wrap">
+        <iframe id="player-frame"
+            src="https://vidsrc.rip/embed/movie/{movie_id}"
+            allowfullscreen
+            allow="autoplay; encrypted-media; fullscreen; picture-in-picture">
+        </iframe>
+    </div>
+
+    <div class="back-bar">
+        <a class="back-link" href="/">← Back to iBOMMA Rahul</a>
+    </div>
+
+    <script>
+    function loadSrc(url) {{
+        document.getElementById('player-frame').src = url;
+        document.querySelectorAll('.srv-btn').forEach(b => b.classList.remove('active'));
+        event.target.classList.add('active');
+        event.preventDefault();
+    }}
+    </script>
+    """, unsafe_allow_html=True)
+    st.stop()
+
 
 # ─── CSS ──────────────────────────────────────────────────────────────────────
 st.markdown("""
@@ -392,6 +503,8 @@ def render_movie_cards(titles, years, ratings, ids, details_list):
         overview_esc = escape(d.get("overview", ""))
         genres_esc   = escape(d.get("genres", ""))
         poster_url   = escape(d.get("poster", ""))
+        from urllib.parse import quote as _q
+        watch_url = f"/?watch={movie_id}&title={_q(titles[i])}"
         trailer_html = (
             f'<a href="{escape(d["trailer"])}" target="_blank" class="trailer-btn">🎬 Trailer</a>'
             if d.get("trailer") else ''
@@ -407,7 +520,7 @@ def render_movie_cards(titles, years, ratings, ids, details_list):
             f'<div class="movie-genres">{genres_esc}</div>'
             f'<div class="movie-overview">{overview_esc}</div>'
             f'<div class="btn-group">'
-            f'<a href="https://vidsrc.rip/embed/movie/{movie_id}" target="_blank" class="watch-btn">▶ Watch</a>'
+            f'<a href="{watch_url}" target="_self" class="watch-btn">▶ Watch</a>'
             f'{trailer_html}'
             f'</div></div></div>'
         )

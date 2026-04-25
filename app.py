@@ -387,7 +387,7 @@ def render_movie_cards(titles, years, ratings, ids, details_list):
                 <div class="movie-genres">{d["genres"]}</div>
                 <div class="movie-overview">{d["overview"]}</div>
                 <div class="btn-group">
-                    <a href="https://multiembed.mov/?video_id={movie_id}&tmdb=1" target="_blank" class="watch-btn">▶ Watch</a>
+                    <a href="https://vidsrc.pm/embed/movie/{movie_id}" target="_blank" class="watch-btn">▶ Watch</a>
                     {trailer_html}
                 </div>
             </div>

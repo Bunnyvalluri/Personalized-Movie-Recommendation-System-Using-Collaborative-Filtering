@@ -260,7 +260,8 @@ if "watch" in st.query_params:
     .p-player-wrap {{
         position: relative;
         border-radius: 14px;
-        overflow: hidden;
+        /* overflow must NOT be hidden — it blocks browser fullscreen expansion */
+        overflow: visible;
         box-shadow: 0 0 80px rgba(229,9,20,0.15), 0 30px 60px rgba(0,0,0,0.8);
         border: 1px solid rgba(229,9,20,0.2);
         background: #000;
@@ -281,6 +282,46 @@ if "watch" in st.query_params:
         display: block;
         position: relative;
         z-index: 1;
+        border-radius: 14px;
+    }}
+    /* Fullscreen: iframe fills entire screen */
+    #player-frame:fullscreen,
+    #player-frame:-webkit-full-screen,
+    #player-frame:-moz-full-screen,
+    #player-frame:-ms-fullscreen {{
+        width: 100vw !important;
+        height: 100vh !important;
+        border-radius: 0 !important;
+    }}
+    /* Custom fullscreen button overlay */
+    .fs-btn {{
+        position: absolute;
+        bottom: 14px;
+        right: 14px;
+        z-index: 20;
+        width: 42px;
+        height: 42px;
+        background: rgba(0,0,0,0.7);
+        border: 1px solid rgba(255,255,255,0.25);
+        border-radius: 8px;
+        color: #fff;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+        backdrop-filter: blur(8px);
+    }}
+    .fs-btn:hover {{
+        background: #e50914;
+        border-color: #e50914;
+        transform: scale(1.1);
+        box-shadow: 0 4px 18px rgba(229,9,20,0.55);
+    }}
+    .fs-btn svg {{
+        width: 20px;
+        height: 20px;
+        pointer-events: none;
     }}
     .p-footer {{
         text-align: center;
@@ -289,6 +330,15 @@ if "watch" in st.query_params:
         font-size: 12px;
     }}
     .p-footer span {{ color: #e50914; }}
+    .p-footer kbd {{
+        background: #1a1a1a;
+        border: 1px solid #333;
+        padding: 1px 7px;
+        border-radius: 4px;
+        color: #aaa;
+        font-size: 11px;
+        font-family: monospace;
+    }}
     </style>
 
     <div class="p-navbar">
@@ -310,16 +360,31 @@ if "watch" in st.query_params:
     </div>
 
     <div class="p-cinema">
-        <div class="p-player-wrap">
+        <div class="p-player-wrap" id="player-wrap">
             <iframe id="player-frame"
                 src="https://moviesapi.club/movie/{movie_id}"
                 allowfullscreen
-                allow="autoplay; encrypted-media; fullscreen; picture-in-picture">
+                allow="autoplay; encrypted-media; fullscreen; picture-in-picture; web-share">
             </iframe>
+            <!-- Custom fullscreen button -->
+            <button class="fs-btn" id="fs-btn" onclick="goFullscreen()" title="Fullscreen (Press F)">
+                <svg id="fs-expand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="15 3 21 3 21 9"></polyline>
+                    <polyline points="9 21 3 21 3 15"></polyline>
+                    <line x1="21" y1="3" x2="14" y2="10"></line>
+                    <line x1="3" y1="21" x2="10" y2="14"></line>
+                </svg>
+                <svg id="fs-collapse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
+                    <polyline points="4 14 10 14 10 20"></polyline>
+                    <polyline points="20 10 14 10 14 4"></polyline>
+                    <line x1="10" y1="14" x2="3" y2="21"></line>
+                    <line x1="21" y1="3" x2="14" y2="10"></line>
+                </svg>
+            </button>
         </div>
     </div>
 
-    <div class="p-footer">Powered by <span>iBOMMA RAHUL</span> &nbsp;•&nbsp; If the player is blank, switch to another server above.</div>
+    <div class="p-footer">Powered by <span>iBOMMA RAHUL</span> &nbsp;•&nbsp; Blank player? Switch server above. &nbsp;•&nbsp; <kbd>F</kbd> = Fullscreen &nbsp;•&nbsp; <kbd>Esc</kbd> = Exit</div>
 
     <script>
     function loadSrc(url, btn) {{
@@ -328,6 +393,36 @@ if "watch" in st.query_params:
         btn.classList.add('active');
         event.preventDefault();
     }}
+
+    function goFullscreen() {{
+        var frame = document.getElementById('player-frame');
+        if (!document.fullscreenElement && !document.webkitFullscreenElement) {{
+            // Request fullscreen directly on the iframe — it fills 100vw x 100vh
+            (frame.requestFullscreen ||
+             frame.webkitRequestFullscreen ||
+             frame.mozRequestFullScreen ||
+             frame.msRequestFullscreen).call(frame);
+        }} else {{
+            (document.exitFullscreen ||
+             document.webkitExitFullscreen ||
+             document.mozCancelFullScreen ||
+             document.msExitFullscreen).call(document);
+        }}
+    }}
+
+    // Sync icon when fullscreen state changes (enter or exit)
+    ['fullscreenchange','webkitfullscreenchange','mozfullscreenchange','MSFullscreenChange'].forEach(function(ev) {{
+        document.addEventListener(ev, function() {{
+            var active = !!(document.fullscreenElement || document.webkitFullscreenElement);
+            document.getElementById('fs-expand').style.display   = active ? 'none' : '';
+            document.getElementById('fs-collapse').style.display = active ? ''     : 'none';
+        }});
+    }});
+
+    // Keyboard: F toggles fullscreen, Esc already handled natively by browser
+    document.addEventListener('keydown', function(e) {{
+        if ((e.key === 'f' || e.key === 'F') && !e.ctrlKey && !e.metaKey) goFullscreen();
+    }});
     </script>
     """, unsafe_allow_html=True)
     st.stop()

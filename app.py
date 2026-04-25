@@ -106,6 +106,30 @@ def recommend(movie):
 
 st.set_page_config(layout="wide", page_title="iBOMMA Rahul")
 
+# Watch Route: Embedded Ad-Free Player
+if "watch" in st.query_params:
+    movie_id = st.query_params["watch"]
+    
+    if st.button("⬅️ Back to Home"):
+        st.query_params.clear()
+        st.rerun()
+        
+    st.markdown(f"""
+    <div style="width: 100%; max-width: 1100px; margin: 0 auto; background: #000; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 40px rgba(229,9,20,0.3); border: 1px solid rgba(229,9,20,0.5);">
+        <iframe src="https://multiembed.mov/?video_id={movie_id}&tmdb=1" 
+            width="100%" 
+            height="650px" 
+            frameborder="0" 
+            sandbox="allow-scripts allow-same-origin allow-presentation" 
+            allowfullscreen>
+        </iframe>
+    </div>
+    <p style="text-align:center; color: #888; font-size: 13px; margin-top: 15px;">
+        🛡️ Popups and redirects are strictly blocked by the iBOMMA Sandbox Engine.
+    </p>
+    """, unsafe_allow_html=True)
+    st.stop()
+
 # Injecting Netflix-style Custom CSS
 st.markdown("""
 <style>
@@ -387,7 +411,7 @@ def render_movie_cards(titles, years, ratings, ids, details_list):
                 <div class="movie-genres">{d["genres"]}</div>
                 <div class="movie-overview">{d["overview"]}</div>
                 <div class="btn-group">
-                    <a href="https://multiembed.mov/?video_id={movie_id}&tmdb=1" target="_blank" class="watch-btn">▶ Watch</a>
+                    <a href="/?watch={movie_id}" target="_self" class="watch-btn">▶ Watch</a>
                     {trailer_html}
                 </div>
             </div>

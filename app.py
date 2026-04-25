@@ -15,11 +15,36 @@ retries = Retry(total=1, backoff_factor=0.1)
 session.mount('https://', HTTPAdapter(max_retries=retries))
 
 
+TMDB_KEY = "8265bd1679663a7ea12ac168da84d2e8"
+HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+
+
+def tmdb_get(path):
+    """Fetch a TMDB API path, trying proxy first then direct."""
+    direct = f"https://api.themoviedb.org/3/{path}&api_key={TMDB_KEY}"
+    proxy  = f"https://api.codetabs.com/v1/proxy?quest={direct}"
+    
+    # Try proxy first (works when TMDB is ISP-blocked)
+    try:
+        r = session.get(proxy, headers=HEADERS, timeout=8)
+        if r.status_code == 200:
+            return r.json()
+    except Exception:
+        pass
+
+    # Fallback: try direct
+    try:
+        r = session.get(direct, headers=HEADERS, timeout=5)
+        if r.status_code == 200:
+            return r.json()
+    except Exception:
+        pass
+
+    return {}
+
+
 def fetch_movie_details(movie_id):
     """Fetches poster, trailer, overview, and genres from TMDB API."""
-    tmdb_url = f"https://api.themoviedb.org/3/movie/{movie_id}?api_key=8265bd1679663a7ea12ac168da84d2e8&language=en-US&append_to_response=videos"
-    headers = {"User-Agent": "Mozilla/5.0"}
-
     details = {
         'poster': "https://placehold.co/500x750/333/FFFFFF?text=No+Poster",
         'trailer': None,
@@ -27,47 +52,31 @@ def fetch_movie_details(movie_id):
         'genres': ""
     }
 
-    def parse_data(data):
-        if not isinstance(data, dict):
-            return
-        if data.get('poster_path'):
-            details['poster'] = "https://media.themoviedb.org/t/p/w500" + data['poster_path']
-        if data.get('overview'):
-            overview = data['overview']
-            details['overview'] = overview[:110] + '...' if len(overview) > 110 else overview
-        if data.get('genres'):
-            details['genres'] = " • ".join([g['name'] for g in data['genres'][:2]])
-        if 'videos' in data and isinstance(data['videos'], dict):
-            for video in data['videos'].get('results', []):
-                if video.get('site') == 'YouTube' and video.get('type') == 'Trailer':
-                    details['trailer'] = f"https://www.youtube.com/watch?v={video['key']}"
-                    break
-
-    try:
-        data = session.get(tmdb_url, headers=headers, timeout=5).json()
-        parse_data(data)
+    data = tmdb_get(f"movie/{movie_id}?language=en-US&append_to_response=videos")
+    if not data:
         return details
-    except Exception:
-        pass
 
-    try:
-        proxy_url = "https://api.allorigins.win/raw?url=" + tmdb_url
-        data = session.get(proxy_url, headers=headers, timeout=6).json()
-        parse_data(data)
-    except Exception:
-        pass
+    if data.get('poster_path'):
+        details['poster'] = "https://media.themoviedb.org/t/p/w500" + data['poster_path']
+    if data.get('overview'):
+        overview = data['overview']
+        details['overview'] = overview[:110] + '...' if len(overview) > 110 else overview
+    if data.get('genres'):
+        details['genres'] = " • ".join([g['name'] for g in data['genres'][:2]])
+    if 'videos' in data and isinstance(data['videos'], dict):
+        for video in data['videos'].get('results', []):
+            if video.get('site') == 'YouTube' and video.get('type') == 'Trailer':
+                details['trailer'] = f"https://www.youtube.com/watch?v={video['key']}"
+                break
 
     return details
 
 
 def fetch_trending():
     """Fetches the top 5 trending movies of the week from TMDB."""
-    url = "https://api.themoviedb.org/3/trending/movie/week?api_key=8265bd1679663a7ea12ac168da84d2e8"
-    try:
-        data = session.get(url, timeout=5).json()
-        return data.get('results', [])[:5]
-    except Exception:
-        return []
+    data = tmdb_get("trending/movie/week?")
+    return data.get('results', [])[:5] if data else []
+
 
 
 def safe_year(val):

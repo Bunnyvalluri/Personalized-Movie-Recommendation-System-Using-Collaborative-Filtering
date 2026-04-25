@@ -412,9 +412,9 @@ else:
             with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
                 t_details = list(executor.map(fetch_movie_details, t_ids))
                 
-            t_names = [m['title'] for m in trending]
-            t_years = [m['year'] for m in trending]
-            t_ratings = [m['rating'] for m in trending]
+            t_names = [m.get('title', 'Unknown') for m in trending]
+            t_years = [m.get('release_date', 'N/A')[:4] for m in trending]
+            t_ratings = [m.get('vote_average', 0) for m in trending]
             
             st.markdown("<div class='section-title'>🔥 Trending This Week</div>", unsafe_allow_html=True)
             render_movie_cards(t_names, t_years, t_ratings, t_ids, t_details)

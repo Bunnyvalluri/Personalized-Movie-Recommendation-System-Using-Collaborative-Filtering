@@ -357,35 +357,49 @@ selected_movie = st.selectbox(
 
 
 # ─── RENDER CARDS ─────────────────────────────────────────────────────────────
+import html as _html
+
+def escape(text):
+    """Safely escape text for use inside HTML attributes and content."""
+    return _html.escape(str(text), quote=True)
+
 def render_movie_cards(titles, years, ratings, ids, details_list):
-    html_content = '<div class="movie-row">'
+    cards_html = ""
     for i in range(len(titles)):
-        year = years[i] if years[i] else 'N/A'
-        rating = ratings[i] if ratings[i] else 'N/A'
+        year    = years[i] if years[i] else 'N/A'
+        rating  = ratings[i] if ratings[i] else 'N/A'
         movie_id = str(ids[i])
         d = details_list[i] if details_list[i] else {
             'poster': "https://placehold.co/500x750/333/FFFFFF?text=No+Poster",
             'trailer': None, 'overview': '', 'genres': ''
         }
 
-        trailer_html = f'<a href="{d["trailer"]}" target="_blank" class="trailer-btn">🎬 Trailer</a>' if d.get("trailer") else ''
+        title_esc    = escape(titles[i])
+        overview_esc = escape(d.get("overview", ""))
+        genres_esc   = escape(d.get("genres", ""))
+        poster_url   = escape(d.get("poster", ""))
+        trailer_html = (
+            f'<a href="{escape(d["trailer"])}" target="_blank" class="trailer-btn">🎬 Trailer</a>'
+            if d.get("trailer") else ''
+        )
 
-        html_content += f'''
-        <div class="movie-card">
-            <img src="{d["poster"]}" class="movie-poster" alt="{titles[i]}" onerror="this.src='https://placehold.co/500x750/333/FFFFFF?text=No+Poster'">
-            <div class="movie-info">
-                <div class="movie-title" title="{titles[i]}">{titles[i]}</div>
-                <div class="movie-meta">{year} &nbsp;•&nbsp; <span class="rating-star">{rating} ⭐</span></div>
-                <div class="movie-genres">{d.get("genres", "")}</div>
-                <div class="movie-overview">{d.get("overview", "")}</div>
-                <div class="btn-group">
-                    <a href="https://vidsrc.rip/embed/movie/{movie_id}" target="_blank" class="watch-btn">▶ Watch</a>
-                    {trailer_html}
-                </div>
-            </div>
-        </div>'''
-    html_content += '</div>'
-    st.markdown(html_content, unsafe_allow_html=True)
+        cards_html += (
+            f'<div class="movie-card">'
+            f'<img src="{poster_url}" class="movie-poster" alt="{title_esc}" '
+            f'onerror="this.src=\'https://placehold.co/500x750/333/FFFFFF?text=No+Poster\'">'
+            f'<div class="movie-info">'
+            f'<div class="movie-title" title="{title_esc}">{title_esc}</div>'
+            f'<div class="movie-meta">{year} &nbsp;•&nbsp; <span class="rating-star">{rating} ⭐</span></div>'
+            f'<div class="movie-genres">{genres_esc}</div>'
+            f'<div class="movie-overview">{overview_esc}</div>'
+            f'<div class="btn-group">'
+            f'<a href="https://vidsrc.rip/embed/movie/{movie_id}" target="_blank" class="watch-btn">▶ Watch</a>'
+            f'{trailer_html}'
+            f'</div></div></div>'
+        )
+
+    st.markdown(f'<div class="movie-row">{cards_html}</div>', unsafe_allow_html=True)
+
 
 
 # ─── MAIN LOGIC ───────────────────────────────────────────────────────────────

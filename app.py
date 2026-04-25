@@ -495,14 +495,8 @@ if "watch" in st.query_params:
     import html as _html_esc
     # Use st.markdown with a manual iframe and srcdoc to bypass the restrictive sandbox 
     # while still allowing JavaScript to execute properly.
-    st.markdown(
-        f'<iframe srcdoc="{_html_esc.escape(player_html)}" '
-        f'width="100%" height="1200px" '
-        f'style="border:none; background:transparent;" '
-        f'allowfullscreen '
-        f'allow="autoplay; encrypted-media; fullscreen; picture-in-picture"></iframe>',
-        unsafe_allow_html=True
-    )
+    iframe_code = '<iframe srcdoc="{}" width="100%" height="1200px" style="border:none; background:transparent;" allowfullscreen allow="autoplay; encrypted-media; fullscreen; picture-in-picture"></iframe>'.format(_html_esc.escape(player_html))
+    st.markdown(iframe_code, unsafe_allow_html=True)
     st.stop()
 
 

@@ -146,362 +146,249 @@ st.set_page_config(layout="wide", page_title="iBOMMA Rahul - Watch")
 
 # ─── INTERNAL MOVIE PLAYER ROUTE ─────────────────────────────────────────────
 if "watch" in st.query_params:
-    movie_id = st.query_params.get("watch", "")
+    movie_id    = st.query_params.get("watch", "")
     movie_title = st.query_params.get("title", "Movie")
+    from_movie  = st.query_params.get("from", "")
 
-    import streamlit.components.v1 as components
-    
-    # Hide Streamlit's default margins and navbar when watching a movie
+    from urllib.parse import quote as _q
+    # Back URL restores the recommendations page
+    back_url = f"/?recs=1&movie={_q(from_movie)}" if from_movie else "/"
+
+    # Hide Streamlit chrome
     st.markdown("""
     <style>
-    .stApp > header {display:none;}
-    .block-container {padding: 0 !important; max-width: 100% !important;}
-    iframe {border: none;}
+    .stApp > header {display:none !important;}
+    .block-container {padding:0 !important; max-width:100% !important;}
+    footer {display:none !important;}
+    #MainMenu {display:none !important;}
     </style>
     """, unsafe_allow_html=True)
 
-    player_html = f"""
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-    <style>
-    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap');
-    *, *::before, *::after {{ box-sizing: border-box; margin: 0; padding: 0; }}
-    body {{ background: #050505; font-family: 'Outfit', sans-serif !important; min-height: 100vh; color: #fff; margin: 0; overflow-x: hidden; }}
-    @keyframes auroraPlayer {{
-        0%   {{ background-position: 0% 50%; }}
-        50%  {{ background-position: 100% 50%; }}
-        100% {{ background-position: 0% 50%; }}
-    }}
-    body {{ 
-        background: linear-gradient(125deg, #0a0010 0%, #130020 15%, #0d0000 30%, #000d1a 50%, #0a0010 65%, #1a0005 80%, #000010 100%);
-        background-size: 400% 400%;
-        animation: auroraPlayer 22s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
-        font-family: 'Outfit', sans-serif !important; 
-        min-height: 100vh; color: #fff; margin: 0; overflow-x: hidden; 
-    }}
-    body::before {{
-        content: ""; position: fixed; inset: 0;
-        background-image: url("https://www.transparenttextures.com/patterns/carbon-fibre.png");
-        opacity: 0.04; pointer-events: none; z-index: 1;
-    }}
-    .p-navbar {{
-        display: flex; align-items: center; justify-content: flex-start;
-        gap: 20px; padding: 16px 32px; background: rgba(0,0,0,0.85);
-        backdrop-filter: blur(25px); border-bottom: 1px solid rgba(229,9,20,0.3);
-        position: sticky; top: 0; z-index: 9999;
-    }}
-    .p-logo {{ font-size: 1.6rem; font-weight: 800; color: #e50914;
-        text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 0 20px rgba(229,9,20,0.6); }}
-    .p-back {{
-        color: #aaa !important; text-decoration: none !important; font-size: 13px;
-        border: 1px solid rgba(255,255,255,0.15); padding: 7px 18px; border-radius: 20px;
-        transition: all 0.3s;
-    }}
-    .p-back:hover {{ color: #fff !important; border-color: #e50914; background: rgba(229,9,20,0.1); }}
-    .p-title-strip {{
-        background: linear-gradient(135deg, #1a0000 0%, #0d0d0d 50%, #1a0000 100%);
-        padding: 18px 32px; border-bottom: 1px solid rgba(229,9,20,0.12);
-        display: flex; align-items: center; gap: 14px;
-    }}
-    .p-play-icon {{
-        width: 40px; height: 40px; background: #e50914; border-radius: 50%;
-        display: flex; align-items: center; justify-content: center; font-size: 16px;
-        box-shadow: 0 0 18px rgba(229,9,20,0.5); flex-shrink: 0;
-    }}
-    .p-movie-name {{ font-size: 1.35rem; font-weight: 700; color: #fff; }}
-    .p-movie-name span {{ color: #e50914; }}
-    .p-srv-bar {{
-        display: flex; align-items: center; gap: 10px; padding: 13px 32px;
-        background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.05);
-        flex-wrap: wrap;
-    }}
-    .p-srv-label {{ color: #555; font-size: 11px; font-weight: 700; text-transform: uppercase;
-        letter-spacing: 1px; margin-right: 4px; }}
-    .srv-btn {{
-        padding: 7px 18px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1);
-        background: rgba(255,255,255,0.05); color: #ccc !important; cursor: pointer;
-        font-size: 13px; font-weight: 600; text-decoration: none !important;
-        transition: all 0.25s; font-family: 'Outfit', sans-serif;
-    }}
-    .srv-btn:hover {{ background: rgba(229,9,20,0.15); border-color: rgba(229,9,20,0.5); color: #fff !important; }}
-    .srv-btn.active {{ background: #e50914; border-color: #e50914; color: #fff !important;
-        box-shadow: 0 4px 14px rgba(229,9,20,0.4); }}
-    .p-cinema {{ width: 100%; max-width: 1280px; margin: 24px auto; padding: 0 24px; }}
-    .p-player-wrap {{
-        position: relative; border-radius: 14px; overflow: hidden;
-        box-shadow: 0 0 80px rgba(229,9,20,0.15), 0 30px 60px rgba(0,0,0,0.8);
-        border: 1px solid rgba(229,9,20,0.2); background: #000;
-    }}
-    #player-frame {{ width: 100%; height: 680px; border: none; display: block; }}
-    /* Fullscreen */
-    .p-player-wrap:fullscreen, .p-player-wrap:-webkit-full-screen,
-    .p-player-wrap:-moz-full-screen, .p-player-wrap:-ms-fullscreen {{
-        border-radius: 0 !important; border: none !important;
-        max-width: 100vw !important; width: 100vw !important; height: 100vh !important;
-    }}
-    .p-player-wrap:fullscreen #player-frame,
-    .p-player-wrap:-webkit-full-screen #player-frame,
-    .p-player-wrap:-moz-full-screen #player-frame,
-    .p-player-wrap:-ms-fullscreen #player-frame {{
-        width: 100vw !important; height: 100vh !important;
-    }}
-    .fs-btn {{
-        position: absolute; bottom: 14px; right: 14px; z-index: 20;
-        width: 42px; height: 42px; background: rgba(0,0,0,0.7);
-        border: 1px solid rgba(255,255,255,0.25); border-radius: 8px;
-        color: #fff; cursor: pointer; display: flex; align-items: center;
-        justify-content: center; transition: all 0.2s ease; backdrop-filter: blur(8px);
-    }}
-    .fs-btn:hover {{ background: #e50914; border-color: #e50914; transform: scale(1.1);
-        box-shadow: 0 4px 18px rgba(229,9,20,0.55); }}
-    .fs-btn svg {{ width: 20px; height: 20px; pointer-events: none; }}
-    /* Loading overlay */
-    .p-loading {{
-        position: absolute; inset: 0; display: flex; flex-direction: column;
-        align-items: center; justify-content: center; background: #000;
-        z-index: 10; gap: 14px; transition: opacity 0.4s;
-    }}
-    .p-loading.hidden {{ opacity: 0; pointer-events: none; }}
-    .p-spinner {{
-        width: 46px; height: 46px;
-        border: 3px solid rgba(229,9,20,0.2); border-top-color: #e50914;
-        border-radius: 50%; animation: spin 0.8s linear infinite;
-    }}
-    @keyframes spin {{ to {{ transform: rotate(360deg); }} }}
-    .p-loading-text {{ color: #777; font-size: 13px; }}
-    /* Cinema unavailable banner */
-    .p-unavail {{
-        display: none; flex-direction: column; align-items: center;
-        justify-content: center; gap: 16px; padding: 50px 30px;
-        background: rgba(10,10,16,0.97); position: absolute; inset: 0;
-        z-index: 25; text-align: center; border-radius: 14px;
-    }}
-    .p-unavail.show {{ display: flex; }}
-    .p-unavail-icon {{ font-size: 3.2rem; }}
-    .p-unavail-title {{ font-size: 1.25rem; font-weight: 800; color: #fff; }}
-    .p-unavail-sub {{ font-size: 13px; color: #666; max-width: 360px; line-height: 1.6; }}
-    .p-unavail-links {{ display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }}
-    .p-unavail-link {{
-        padding: 10px 22px; border-radius: 8px; text-decoration: none !important;
-        font-weight: 700; font-size: 13px; transition: all 0.25s;
-    }}
-    .p-unavail-link.red {{ background: linear-gradient(135deg,#e50914,#b8000b);
-        color:#fff !important; box-shadow:0 4px 16px rgba(229,9,20,0.4); }}
-    .p-unavail-link.red:hover {{ transform:translateY(-2px); box-shadow:0 8px 24px rgba(229,9,20,0.6); }}
-    .p-unavail-link.grey {{ background:rgba(255,255,255,0.07); color:#ccc !important;
-        border:1px solid rgba(255,255,255,0.14); }}
-    .p-unavail-link.grey:hover {{ background:rgba(255,255,255,0.14); color:#fff !important; }}
-    .p-retry {{ background:none; border:none; color:#555; font-size:12px; cursor:pointer;
-        text-decoration:underline; font-family:'Outfit',sans-serif; margin-top:4px; }}
-    .p-retry:hover {{ color:#aaa; }}
-    .p-footer {{ text-align:center; padding:30px; color:#555; font-size:12px; font-weight: 600; letter-spacing: 1px;}}
-    .p-footer span {{ color:#ff0040; opacity: 0.8;}}
-    .p-footer kbd {{
-        background:#1a1a1a; border:1px solid #2a2a2a; padding:1px 7px;
-        border-radius:4px; color:#888; font-size:11px; font-family:monospace;
-    }}
-    @media (max-width:600px) {{
-        .p-navbar {{ padding:12px 16px; }} .p-logo {{ font-size:1.2rem; }}
-        .p-title-strip {{ padding:12px 16px; }} .p-movie-name {{ font-size:1rem; }}
-        .p-srv-bar {{ padding:10px 16px; }} .p-cinema {{ padding:0 10px; }}
-        #player-frame {{ height:220px; }}
-    }}
-    </style>
-    </head>
-    <body>
-
-    <nav class="p-navbar">
-        <!-- Back button moved to left to avoid Streamlit Cloud toolbar collision -->
-        <a class="p-back" onclick="window.parent.location.href='/?home=1'">← Back to Home</a>
-        <div class="p-logo">iBOMMA RAHUL</div>
-    </nav>
-
-    <div class="p-title-strip">
-        <div class="p-play-icon">▶</div>
-        <div class="p-movie-name">Now Playing: <span>{movie_title}</span></div>
-    </div>
-
-    <div class="p-srv-bar">
-        <span class="p-srv-label">Switch Server:</span>
-        <a class="srv-btn active" onclick="loadSrc('s1',this)" href="#">⚡ Server 1</a>
-        <a class="srv-btn" onclick="loadSrc('s2',this)" href="#">⚡ Server 2</a>
-        <a class="srv-btn" onclick="loadSrc('s3',this)" href="#">⚡ Server 3</a>
-        <a class="srv-btn" onclick="loadSrc('s4',this)" href="#">⚡ Server 4</a>
-        <a class="srv-btn" onclick="loadSrc('s5',this)" href="#">⚡ Server 5</a>
-        <a class="srv-btn" onclick="loadSrc('s6',this)" href="#">⚡ Server 6</a>
-    </div>
-
-    <div class="p-cinema">
-        <div class="p-player-wrap" id="pwrap">
-            <div class="p-loading" id="pload">
-                <div class="p-spinner"></div>
-                <div class="p-loading-text">Connecting to server…</div>
-            </div>
-            <div class="p-unavail" id="punavail">
-                <div class="p-unavail-icon">🎭</div>
-                <div class="p-unavail-title">Not Available Yet</div>
-                <div class="p-unavail-sub">
-                    This movie may still be in theaters or not yet on any streaming server.
-                    Try all 6 servers, or check back in a few weeks.
-                </div>
-                <div class="p-unavail-links">
-                    <a id="yt-link" href="#" target="_blank" class="p-unavail-link red">▶ Watch Trailer</a>
-                    <a id="jw-link" href="#" target="_blank" class="p-unavail-link grey">🔍 Find on JustWatch</a>
-                </div>
-                <button class="p-retry" onclick="retryAll()">↩ Try all servers again</button>
-            </div>
-            <iframe id="player-frame"
-                allowfullscreen
-                allow="autoplay; encrypted-media; fullscreen; picture-in-picture; web-share"
-                src="about:blank"
-                onload="onLoad()">
-            </iframe>
-            <button class="fs-btn" id="fs-btn" onclick="goFullscreen()" title="Fullscreen (F)">
-                <svg id="fs-expand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="15 3 21 3 21 9"></polyline>
-                    <polyline points="9 21 3 21 3 15"></polyline>
-                    <line x1="21" y1="3" x2="14" y2="10"></line>
-                    <line x1="3" y1="21" x2="10" y2="14"></line>
-                </svg>
-                <svg id="fs-collapse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
-                    <polyline points="4 14 10 14 10 20"></polyline>
-                    <polyline points="20 10 14 10 14 4"></polyline>
-                    <line x1="10" y1="14" x2="3" y2="21"></line>
-                    <line x1="21" y1="3" x2="14" y2="10"></line>
-                </svg>
-            </button>
+    import streamlit.components.v1 as components
+    components.html(f"""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>iBOMMA RAHUL – {{movie_title}}</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800;900&display=swap');
+*, *::before, *::after {{ box-sizing: border-box; margin: 0; padding: 0; }}
+@keyframes ap {{ 0%{{background-position:0% 50%;}} 50%{{background-position:100% 50%;}} 100%{{background-position:0% 50%;}} }}
+body {{
+    background: linear-gradient(125deg, #0a0010 0%, #130020 15%, #0d0000 30%, #000d1a 50%, #0a0010 65%, #1a0005 80%, #000010 100%);
+    background-size: 400% 400%; animation: ap 22s ease infinite;
+    font-family: 'Outfit', sans-serif; color: #fff; margin: 0; overflow-x: hidden; min-height: 100vh;
+}}
+.p-navbar {{
+    display:flex; align-items:center; gap:20px; padding:14px 28px;
+    background:rgba(0,0,0,0.88); backdrop-filter:blur(25px);
+    border-bottom:1px solid rgba(229,9,20,0.35); position:sticky; top:0; z-index:9999;
+}}
+.p-logo {{ font-size:1.5rem; font-weight:900; color:#e50914; text-transform:uppercase; letter-spacing:2px; text-shadow:0 0 20px rgba(229,9,20,0.6); }}
+.p-back {{
+    color:#aaa; font-size:13px; border:1px solid rgba(255,255,255,0.18); padding:7px 18px;
+    border-radius:30px; cursor:pointer; background:none; font-family:'Outfit',sans-serif;
+    font-weight:600; transition:all 0.3s;
+}}
+.p-back:hover {{ color:#fff; border-color:#e50914; background:rgba(229,9,20,0.12); }}
+.p-strip {{ background:linear-gradient(135deg,#1a0000,#0d0d0d,#1a0000); padding:16px 28px; border-bottom:1px solid rgba(229,9,20,0.12); display:flex; align-items:center; gap:14px; }}
+.p-icon {{ width:38px; height:38px; background:#e50914; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:15px; box-shadow:0 0 18px rgba(229,9,20,0.5); flex-shrink:0; }}
+.p-mname {{ font-size:1.2rem; font-weight:700; }}
+.p-mname span {{ color:#e50914; }}
+.p-srv {{ display:flex; align-items:center; gap:8px; padding:12px 28px; background:rgba(255,255,255,0.02); border-bottom:1px solid rgba(255,255,255,0.06); flex-wrap:wrap; }}
+.p-srv-label {{ color:#555; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:1px; margin-right:4px; }}
+.srv-btn {{ padding:6px 16px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.05); color:#bbb; cursor:pointer; font-size:13px; font-weight:600; transition:all 0.25s; font-family:'Outfit',sans-serif; }}
+.srv-btn:hover {{ background:rgba(229,9,20,0.15); border-color:rgba(229,9,20,0.5); color:#fff; }}
+.srv-btn.active {{ background:linear-gradient(135deg,#e50914,#a30008); border-color:#e50914; color:#fff; box-shadow:0 4px 16px rgba(229,9,20,0.45); }}
+.srv-status {{ margin-left:auto; font-size:11px; font-weight:600; padding:4px 12px; border-radius:20px; }}
+.srv-status.trying {{ color:#f0a000; background:rgba(240,160,0,0.1); border:1px solid rgba(240,160,0,0.3); }}
+.srv-status.live {{ color:#22c55e; background:rgba(34,197,94,0.1); border:1px solid rgba(34,197,94,0.3); }}
+.srv-status.dead {{ color:#e50914; background:rgba(229,9,20,0.1); border:1px solid rgba(229,9,20,0.3); }}
+.p-cinema {{ width:100%; max-width:1280px; margin:24px auto; padding:0 20px; }}
+.p-wrap {{ position:relative; border-radius:14px; overflow:hidden; box-shadow:0 0 80px rgba(229,9,20,0.18),0 30px 70px rgba(0,0,0,0.9); border:1px solid rgba(229,9,20,0.22); background:#000; }}
+#pf {{ width:100%; height:680px; border:none; display:block; }}
+.p-load {{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; background:#000; z-index:10; gap:14px; transition:opacity 0.4s; }}
+.p-load.hidden {{ opacity:0; pointer-events:none; }}
+.spinner {{ width:48px; height:48px; border:3px solid rgba(229,9,20,0.2); border-top-color:#e50914; border-radius:50%; animation:spin 0.8s linear infinite; }}
+@keyframes spin {{ to {{ transform:rotate(360deg); }} }}
+.p-lt {{ color:#666; font-size:13px; }}
+.p-ls {{ color:#444; font-size:11px; }}
+.p-unavail {{ display:none; flex-direction:column; align-items:center; justify-content:center; gap:16px; padding:50px 30px; background:rgba(8,8,14,0.98); position:absolute; inset:0; z-index:25; text-align:center; border-radius:14px; }}
+.p-unavail.show {{ display:flex; }}
+.p-unavail-icon {{ font-size:3rem; }}
+.p-unavail-title {{ font-size:1.2rem; font-weight:800; }}
+.p-unavail-sub {{ font-size:13px; color:#555; max-width:380px; line-height:1.7; }}
+.p-unavail-links {{ display:flex; gap:12px; flex-wrap:wrap; justify-content:center; }}
+.pul {{ padding:10px 22px; border-radius:10px; text-decoration:none; font-weight:700; font-size:13px; transition:all 0.25s; }}
+.pul.red {{ background:linear-gradient(135deg,#e50914,#b8000b); color:#fff; box-shadow:0 4px 18px rgba(229,9,20,0.4); }}
+.pul.red:hover {{ transform:translateY(-2px); box-shadow:0 8px 28px rgba(229,9,20,0.65); }}
+.pul.grey {{ background:rgba(255,255,255,0.07); color:#ccc; border:1px solid rgba(255,255,255,0.14); }}
+.pul.grey:hover {{ background:rgba(255,255,255,0.14); color:#fff; }}
+.p-retry {{ background:none; border:none; color:#444; font-size:12px; cursor:pointer; text-decoration:underline; font-family:'Outfit',sans-serif; }}
+.fs-btn {{ position:absolute; bottom:14px; right:14px; z-index:20; width:40px; height:40px; background:rgba(0,0,0,0.75); border:1px solid rgba(255,255,255,0.22); border-radius:8px; color:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.2s; backdrop-filter:blur(8px); }}
+.fs-btn:hover {{ background:#e50914; border-color:#e50914; transform:scale(1.1); }}
+.fs-btn svg {{ width:20px; height:20px; pointer-events:none; }}
+.p-tips {{ margin:14px 20px 0; padding:12px 18px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.06); border-radius:10px; display:flex; gap:20px; flex-wrap:wrap; }}
+.p-tip {{ font-size:11px; color:#555; }}
+.p-tip strong {{ color:#777; }}
+.p-footer {{ text-align:center; padding:24px; color:#444; font-size:12px; font-weight:600; letter-spacing:1px; }}
+.p-footer kbd {{ background:#181818; border:1px solid #2a2a2a; padding:2px 8px; border-radius:5px; color:#777; font-size:11px; font-family:monospace; }}
+@media (max-width:640px) {{ .p-navbar{{padding:10px 14px;}} .p-cinema{{padding:0 8px;}} #pf{{height:240px;}} .p-tips{{display:none;}} }}
+</style>
+</head>
+<body>
+<nav class="p-navbar">
+    <a class="p-back" href="{back_url}" target="_top">&#8592; Back to Results</a>
+    <div class="p-logo">iBOMMA RAHUL</div>
+</nav>
+<div class="p-strip">
+    <div class="p-icon">&#9654;</div>
+    <div class="p-mname">Now Playing: <span id="mtitle">{movie_title}</span></div>
+</div>
+<div class="p-srv">
+    <span class="p-srv-label">Server:</span>
+    <button class="srv-btn active" data-key="s1" onclick="loadSrc('s1',this)">&#9889; Server 1</button>
+    <button class="srv-btn" data-key="s2" onclick="loadSrc('s2',this)">&#9889; Server 2</button>
+    <button class="srv-btn" data-key="s3" onclick="loadSrc('s3',this)">&#9889; Server 3</button>
+    <button class="srv-btn" data-key="s4" onclick="loadSrc('s4',this)">&#9889; Server 4</button>
+    <button class="srv-btn" data-key="s5" onclick="loadSrc('s5',this)">&#9889; Server 5</button>
+    <button class="srv-btn" data-key="s6" onclick="loadSrc('s6',this)">&#9889; Server 6</button>
+    <span class="srv-status trying" id="st">Connecting...</span>
+</div>
+<div class="p-cinema">
+    <div class="p-wrap" id="pw">
+        <div class="p-load" id="pl">
+            <div class="spinner"></div>
+            <div class="p-lt" id="plt">Connecting to server...</div>
+            <div class="p-ls" id="pls">Trying fastest server first</div>
         </div>
+        <div class="p-unavail" id="pu">
+            <div class="p-unavail-icon">&#127917;</div>
+            <div class="p-unavail-title">Movie Not Available</div>
+            <div class="p-unavail-sub">All servers failed. The movie may be in theaters, or try disabling your ad-blocker.</div>
+            <div class="p-unavail-links">
+                <a id="ytl" href="#" target="_blank" class="pul red">&#9654; Watch Trailer</a>
+                <a id="jwl" href="#" target="_blank" class="pul grey">&#128269; Find on JustWatch</a>
+            </div>
+            <button class="p-retry" onclick="retryAll()">&#8617; Try all servers again</button>
+        </div>
+        <iframe id="pf" src="about:blank"
+            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-presentation"
+            allowfullscreen allow="autoplay; encrypted-media; fullscreen; picture-in-picture; web-share"
+            onload="onFL()"></iframe>
+        <button class="fs-btn" onclick="goFS()" title="Fullscreen (F)">
+            <svg id="fse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+            <svg id="fsc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><polyline points="4 14 10 14 10 20"></polyline><polyline points="20 10 14 10 14 4"></polyline><line x1="10" y1="14" x2="3" y2="21"></line><line x1="21" y1="3" x2="14" y2="10"></line></svg>
+        </button>
     </div>
-
-    <div class="p-footer">Powered by ⚡ Premium Streaming Servers &nbsp;•&nbsp;
-        Blank? Try another server &nbsp;•&nbsp;
-        <kbd>F</kbd> Fullscreen &nbsp;•&nbsp; <kbd>Esc</kbd> Exit
+    <div class="p-tips">
+        <span class="p-tip">&#128161; <strong>Blank screen?</strong> Switch servers above</span>
+        <span class="p-tip">&#128721; <strong>Ad-blocker?</strong> Try disabling for this page</span>
+        <span class="p-tip"><kbd>F</kbd> Fullscreen &nbsp; <kbd>Esc</kbd> Exit</span>
     </div>
-
-    <script>
-    var mid = '{movie_id}';
-    var mtitle = '{movie_title}';
-    var servers = {{
-        s1: 'https://moviesapi.club/movie/' + mid,
-        s2: 'https://www.2embed.cc/embed/' + mid,
-        s3: 'https://vidsrc.rip/embed/movie/' + mid,
-        s4: 'https://multiembed.mov/?video_id=' + mid + '&tmdb=1',
-        s5: 'https://embed.su/embed/movie/' + mid,
-        s6: 'https://vidsrc.me/embed/movie?tmdb=' + mid
-    }};
-
-    var blankTimer = null;
-    var realSrcLoaded = false;  // flag: ignore onload from about:blank
-
-    function startTimer() {{
-        clearTimeout(blankTimer);
-        blankTimer = setTimeout(function() {{
-            var ld = document.getElementById('pload');
-            if (ld && !ld.classList.contains('hidden')) {{
-                ld.classList.add('hidden');
-                showUnavail();
-            }}
-        }}, 5000);  // 5 seconds — faster than 8s
-    }}
-
-    function showUnavail() {{
-        document.getElementById('yt-link').href =
-            'https://www.youtube.com/results?search_query=' + encodeURIComponent(mtitle + ' official trailer');
-        document.getElementById('jw-link').href =
-            'https://www.justwatch.com/in/search?q=' + encodeURIComponent(mtitle);
-        document.getElementById('punavail').classList.add('show');
-    }}
-
-    function retryAll() {{
-        document.getElementById('punavail').classList.remove('show');
-        var keys = ['s1','s2','s3','s4','s5','s6'], i = 0;
-        function tryNext() {{
-            if (i >= keys.length) {{ showUnavail(); return; }}
-            var ld = document.getElementById('pload');
-            if (ld) ld.classList.remove('hidden');
-            document.getElementById('player-frame').src = servers[keys[i++]];
-            startTimer();
+</div>
+<div class="p-footer">iBOMMA RAHUL &nbsp;&bull;&nbsp; Premium Streaming &nbsp;&bull;&nbsp; 6 Servers</div>
+<script>
+var mid='{movie_id}', mtitle='{movie_title}';
+var srv={{
+    s1:'https://vidlink.pro/movie/'+mid,
+    s2:'https://vidsrc.cc/v2/embed/movie/'+mid,
+    s3:'https://moviesapi.club/movie/'+mid,
+    s4:'https://www.2embed.cc/embed/'+mid,
+    s5:'https://vidsrc.rip/embed/movie/'+mid,
+    s6:'https://embed.su/embed/movie/'+mid
+}};
+var srvN={{s1:'VidLink',s2:'VidSrc CC',s3:'MoviesAPI',s4:'2Embed',s5:'VidSrc RIP',s6:'Embed.su'}};
+var ORD=['s1','s2','s3','s4','s5','s6'];
+var timer=null, realLoad=false, curKey=null, autoCycle=true;
+var stEl=document.getElementById('st');
+var plEl=document.getElementById('pl');
+var pltEl=document.getElementById('plt');
+var plsEl=document.getElementById('pls');
+function setStatus(cls,txt){{stEl.className='srv-status '+cls;stEl.textContent=txt;}}
+function activateBtn(k){{document.querySelectorAll('.srv-btn').forEach(function(b){{b.classList.toggle('active',b.dataset.key===k);}});curKey=k;}}
+function showLoad(k){{
+    plEl.classList.remove('hidden');
+    document.getElementById('pu').classList.remove('show');
+    pltEl.textContent='Connecting to '+srvN[k]+'...';
+    plsEl.textContent='Server '+(ORD.indexOf(k)+1)+' of 6';
+    setStatus('trying','Trying '+srvN[k]+'...');
+}}
+function startTimer(k){{
+    clearTimeout(timer);
+    timer=setTimeout(function(){{
+        if(plEl&&!plEl.classList.contains('hidden')){{
+            var ni=ORD.indexOf(k)+1;
+            if(ni<ORD.length&&autoCycle){{
+                var nk=ORD[ni];
+                activateBtn(nk); showLoad(nk);
+                document.getElementById('pf').src=srv[nk];
+                startTimer(nk);
+            }}else{{plEl.classList.add('hidden');showUnavail();}}
         }}
-        tryNext();
+    }},6000);
+}}
+function showUnavail(){{
+    setStatus('dead','All servers failed');
+    document.getElementById('ytl').href='https://www.youtube.com/results?search_query='+encodeURIComponent(mtitle+' official trailer');
+    document.getElementById('jwl').href='https://www.justwatch.com/in/search?q='+encodeURIComponent(mtitle);
+    document.getElementById('pu').classList.add('show');
+}}
+function onFL(){{
+    if(!realLoad)return;
+    clearTimeout(timer);
+    plEl.classList.add('hidden');
+    setStatus('live','&#127902; Live – '+srvN[curKey]);
+}}
+function loadSrc(k,btn){{
+    autoCycle=false;
+    activateBtn(k); showLoad(k);
+    document.getElementById('pf').src=srv[k];
+    startTimer(k);
+}}
+function retryAll(){{
+    autoCycle=true;
+    document.getElementById('pu').classList.remove('show');
+    var k=ORD[0]; activateBtn(k); showLoad(k);
+    document.getElementById('pf').src=srv[k];
+    startTimer(k);
+}}
+function goFS(){{
+    var w=document.getElementById('pw');
+    if(!document.fullscreenElement&&!document.webkitFullscreenElement){{
+        var r=w.requestFullscreen||w.webkitRequestFullscreen;
+        if(r)r.call(w).catch(function(){{}});
+    }}else{{
+        var ex=document.exitFullscreen||document.webkitExitFullscreen;
+        if(ex)ex.call(document);
     }}
-
-    function onLoad() {{
-        // Ignore the initial about:blank fire — only react to real src loads
-        if (!realSrcLoaded) return;
-        clearTimeout(blankTimer);
-        var ld = document.getElementById('pload');
-        if (ld) ld.classList.add('hidden');
-    }}
-
-    function loadSrc(key, btn) {{
-        document.getElementById('punavail').classList.remove('show');
-        var ld = document.getElementById('pload');
-        if (ld) ld.classList.remove('hidden');
-        document.getElementById('player-frame').src = servers[key];
-        document.querySelectorAll('.srv-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        event.preventDefault();
-        startTimer();
-    }}
-
-    function goFullscreen() {{
-        var wrap = document.getElementById('pwrap');
-        if (!document.fullscreenElement && !document.webkitFullscreenElement) {{
-            var req = wrap.requestFullscreen || wrap.webkitRequestFullscreen
-                   || wrap.mozRequestFullScreen || wrap.msRequestFullscreen;
-            if (req) req.call(wrap).catch(function(e) {{ console.warn(e); }});
-        }} else {{
-            var ex = document.exitFullscreen || document.webkitExitFullscreen
-                  || document.mozCancelFullScreen || document.msExitFullscreen;
-            if (ex) ex.call(document);
-        }}
-    }}
-
-    ['fullscreenchange','webkitfullscreenchange','mozfullscreenchange','MSFullscreenChange']
-        .forEach(function(ev) {{
-            document.addEventListener(ev, function() {{
-                var on = !!(document.fullscreenElement || document.webkitFullscreenElement);
-                document.getElementById('fs-expand').style.display  = on ? 'none' : '';
-                document.getElementById('fs-collapse').style.display = on ? '' : 'none';
-            }});
-        }});
-
-    document.addEventListener('keydown', function(e) {{
-        if ((e.key==='f'||e.key==='F') && !e.ctrlKey && !e.metaKey && !e.altKey) goFullscreen();
+}}
+['fullscreenchange','webkitfullscreenchange'].forEach(function(ev){{
+    document.addEventListener(ev,function(){{
+        var on=!!(document.fullscreenElement||document.webkitFullscreenElement);
+        document.getElementById('fse').style.display=on?'none':'';
+        document.getElementById('fsc').style.display=on?'':'none';
     }});
-
-    // Animated loading dots
-    var dotEl = document.querySelector('.p-loading-text');
-    if (dotEl) {{
-        var dots = 0;
-        setInterval(function() {{
-            dots = (dots + 1) % 4;
-            dotEl.textContent = 'Connecting to server' + '.'.repeat(dots);
-        }}, 500);
-    }}
-
-    // Start loading server 1 after short delay
-    setTimeout(function() {{
-        realSrcLoaded = true;  // now onLoad should react
-        document.getElementById('player-frame').src = servers.s1;
-        startTimer();
-    }}, 80);
-    </script>
-    </body>
-    </html>
-    """
-    
-    import html as _html_esc
-    # Use st.markdown with a manual iframe and srcdoc to bypass the restrictive sandbox 
-    # while still allowing JavaScript to execute properly.
-    iframe_code = '<iframe srcdoc="{}" width="100%" height="1200px" style="border:none; background:transparent;" allowfullscreen allow="autoplay; encrypted-media; fullscreen; picture-in-picture"></iframe>'.format(_html_esc.escape(player_html))
-    st.markdown(iframe_code, unsafe_allow_html=True)
+}});
+document.addEventListener('keydown',function(e){{if((e.key==='f'||e.key==='F')&&!e.ctrlKey&&!e.metaKey&&!e.altKey)goFS();}});
+var dots=0;
+setInterval(function(){{
+    dots=(dots+1)%4;
+    if(!plEl.classList.contains('hidden'))pltEl.textContent=pltEl.textContent.replace(/[.]+$/,'')+'.'.repeat(dots);
+}},600);
+setTimeout(function(){{
+    realLoad=true;
+    var k=ORD[0]; activateBtn(k); showLoad(k);
+    document.getElementById('pf').src=srv[k];
+    startTimer(k);
+}},100);
+</script>
+</body>
+</html>
+    """, height=1100, scrolling=False)
     st.stop()
-
-
-
-
 
 
 # ─── CSS ──────────────────────────────────────────────────────────────────────
@@ -878,16 +765,31 @@ st.markdown("""
 # ─── LOAD DATA (cached – loads once per server session) ───────────────────────
 @st.cache_resource(show_spinner=False)
 def load_data():
-    movies_dict = pickle.load(open('artifacts/movie_dict.pkl', 'rb'))
-    movies = pd.DataFrame(movies_dict)
+    try:
+        with open('artifacts/movie_dict.pkl', 'rb') as f:
+            movies_dict = pickle.load(f)
+        movies = pd.DataFrame(movies_dict)
 
-    if not os.path.exists('artifacts/similarity.pkl'):
-        cv = CountVectorizer(max_features=5000, stop_words='english')
-        vectors = cv.fit_transform(movies['tags']).toarray()
-        similarity = cosine_similarity(vectors)
-        pickle.dump(similarity, open('artifacts/similarity.pkl', 'wb'))
-    else:
-        similarity = pickle.load(open('artifacts/similarity.pkl', 'rb'))
+        if not os.path.exists('artifacts/similarity.pkl'):
+            cv = CountVectorizer(max_features=5000, stop_words='english')
+            vectors = cv.fit_transform(movies['tags']).toarray()
+            similarity = cosine_similarity(vectors)
+            with open('artifacts/similarity.pkl', 'wb') as f:
+                pickle.dump(similarity, f)
+        else:
+            with open('artifacts/similarity.pkl', 'rb') as f:
+                # Use latin1 encoding for pickle load to be safe with varied data sources
+                similarity = pickle.load(f, encoding='latin1')
+    except (UnicodeDecodeError, Exception):
+        # Fallback for older pickles or encoding issues
+        with open('artifacts/movie_dict.pkl', 'rb') as f:
+            movies_dict = pickle.load(f, encoding='latin1')
+        movies = pd.DataFrame(movies_dict)
+        if os.path.exists('artifacts/similarity.pkl'):
+            with open('artifacts/similarity.pkl', 'rb') as f:
+                similarity = pickle.load(f, encoding='latin1')
+        else:
+            similarity = None # Will be handled by the app
 
     return movies, similarity
 
@@ -902,10 +804,18 @@ except Exception as e:
     st.stop()
 
 # ─── MOVIE SELECTOR ───────────────────────────────────────────────────────────
-movie_list = movies['title'].values
+movie_list = list(movies['title'].values)
+default_index = 0
+if "movie" in st.query_params:
+    try:
+        default_index = movie_list.index(st.query_params["movie"])
+    except ValueError:
+        pass
+
 selected_movie = st.selectbox(
     "What's your favorite movie? Let's find similar ones:",
-    movie_list
+    movie_list,
+    index=default_index
 )
 
 
@@ -932,9 +842,9 @@ def render_movie_cards(titles, years, ratings, ids, details_list):
         genres_raw   = d.get("genres", "")
         poster_url   = escape(d.get("poster", ""))
         from urllib.parse import quote as _q
-        # Use internal Streamlit query-param route — works on Streamlit Cloud
-        # (static file serving is unreliable on Cloud)
-        watch_url = f"/?watch={movie_id}&title={_q(titles[i])}"
+        # Open the standalone player in a NEW TAB — avoids Streamlit sandbox restrictions
+        # Streamlit serves static/ folder at /app/static/ path
+        watch_url = f"/app/static/player.html?id={_q(movie_id)}&title={_q(titles[i])}&from={_q(selected_movie)}"
         trailer_html = (
             f'<a href="{escape(d["trailer"])}" target="_blank" class="trailer-btn">🎬 Trailer</a>'
             if d.get("trailer") else ''
@@ -960,7 +870,7 @@ def render_movie_cards(titles, years, ratings, ids, details_list):
             f'<div class="movie-genres">{genre_pills}</div>'
             f'<div class="movie-overview">{overview_esc}</div>'
             f'<div class="btn-group">'
-            f'<a href="{watch_url}" target="_blank" class="watch-btn">▶ Watch</a>'
+            f'<a href="{watch_url}" target="_blank" class="watch-btn">&#9654; Watch</a>'
             f'{trailer_html}'
             f'</div></div></div>'
         )
@@ -970,7 +880,12 @@ def render_movie_cards(titles, years, ratings, ids, details_list):
 
 
 # ─── MAIN LOGIC ───────────────────────────────────────────────────────────────
-if st.button('🎬 Show Recommendations'):
+show_recs = st.button('🎬 Show Recommendations')
+if show_recs or ("recs" in st.query_params):
+    if show_recs:
+        st.query_params["recs"] = "1"
+        st.query_params["movie"] = selected_movie
+    
     with st.spinner('Curating recommendations...'):
         r_names, r_years, r_ratings, r_ids, r_details = recommend(selected_movie)
 

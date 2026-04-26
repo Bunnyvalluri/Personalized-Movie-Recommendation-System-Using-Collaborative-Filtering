@@ -208,7 +208,7 @@ body {{
 .srv-status.dead {{ color:#e50914; background:rgba(229,9,20,0.1); border:1px solid rgba(229,9,20,0.3); }}
 .p-cinema {{ width:100%; max-width:1280px; margin:24px auto; padding:0 20px; }}
 .p-wrap {{ position:relative; border-radius:14px; overflow:hidden; box-shadow:0 0 80px rgba(229,9,20,0.18),0 30px 70px rgba(0,0,0,0.9); border:1px solid rgba(229,9,20,0.22); background:#000; }}
-#pf {{ width:100%; height:680px; border:none; display:block; }}
+#pf {{ width:100%; height:calc(100vh - 160px); min-height:500px; border:none; display:block; }}
 .p-load {{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; background:#000; z-index:10; gap:14px; transition:opacity 0.4s; }}
 .p-load.hidden {{ opacity:0; pointer-events:none; }}
 .spinner {{ width:48px; height:48px; border:3px solid rgba(229,9,20,0.2); border-top-color:#e50914; border-radius:50%; animation:spin 0.8s linear infinite; }}
@@ -240,7 +240,7 @@ body {{
 </head>
 <body>
 <nav class="p-navbar">
-    <a class="p-back" href="{back_url}" target="_top">&#8592; Back to Results</a>
+    <a class="p-back" href="{back_url}" target="_top" style="text-decoration:none;">&#8592; Back to Results</a>
     <div class="p-logo">iBOMMA RAHUL</div>
 </nav>
 <div class="p-strip">
@@ -275,7 +275,6 @@ body {{
             <button class="p-retry" onclick="retryAll()">&#8617; Try all servers again</button>
         </div>
         <iframe id="pf" src="about:blank"
-            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-presentation"
             allowfullscreen allow="autoplay; encrypted-media; fullscreen; picture-in-picture; web-share"
             onload="onFL()"></iframe>
         <button class="fs-btn" onclick="goFS()" title="Fullscreen (F)">
@@ -387,7 +386,7 @@ setTimeout(function(){{
 </script>
 </body>
 </html>
-    """, height=1100, scrolling=False)
+    """, height=900, scrolling=True)
     st.stop()
 
 
@@ -842,9 +841,8 @@ def render_movie_cards(titles, years, ratings, ids, details_list):
         genres_raw   = d.get("genres", "")
         poster_url   = escape(d.get("poster", ""))
         from urllib.parse import quote as _q
-        # Open the standalone player in a NEW TAB — avoids Streamlit sandbox restrictions
-        # Streamlit serves static/ folder at /app/static/ path
-        watch_url = f"/app/static/player.html?id={_q(movie_id)}&title={_q(titles[i])}&from={_q(selected_movie)}"
+        # Watch URL goes to the Streamlit ?watch= route (works on local AND Streamlit Cloud)
+        watch_url = f"/?watch={movie_id}&title={_q(titles[i])}&from={_q(selected_movie)}"
         trailer_html = (
             f'<a href="{escape(d["trailer"])}" target="_blank" class="trailer-btn">🎬 Trailer</a>'
             if d.get("trailer") else ''
@@ -870,7 +868,7 @@ def render_movie_cards(titles, years, ratings, ids, details_list):
             f'<div class="movie-genres">{genre_pills}</div>'
             f'<div class="movie-overview">{overview_esc}</div>'
             f'<div class="btn-group">'
-            f'<a href="{watch_url}" target="_blank" class="watch-btn">&#9654; Watch</a>'
+            f'<a href="{watch_url}" target="_top" class="watch-btn">&#9654; Watch</a>'
             f'{trailer_html}'
             f'</div></div></div>'
         )

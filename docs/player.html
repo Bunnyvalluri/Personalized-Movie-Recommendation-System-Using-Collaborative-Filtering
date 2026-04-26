@@ -293,371 +293,192 @@
         iBOMMA RAHUL &nbsp;•&nbsp; Premium Streaming &nbsp;•&nbsp; 6 Servers Available
     </div>
 
-<!-- ══════════════════════════════════════════════════════════════════
-     AD BLOCKER — runs before everything else
-     Blocks: popups, redirect hijacks, ad-network XHR/fetch, injected iframes
-═══════════════════════════════════════════════════════════════════ -->
+<!-- ═══════════════ NUCLEAR AD BLOCKER ═══════════════ -->
 <script>
-(function() {
+(function(){
     'use strict';
+    // 1. Kill window.open PERMANENTLY every 100ms — embed scripts can't restore it
+    var _noop = function(){ return null; };
+    window.open = _noop;
+    setInterval(function(){ window.open = _noop; }, 100);
 
-    // ── 1. BLOCK ALL POPUP WINDOWS ───────────────────────────────────────────────
-    // The #1 nuisance from embed servers — pop-under / new-tab ads
-    window.open = function(url, target, features) {
-        // Allow only blank/self targets from trusted player actions
-        return null;
-    };
+    // 2. Blur trap — embed servers detect window.blur to fire popup, we re-focus instantly
+    var _lastFocus = Date.now();
+    window.addEventListener('blur', function(){
+        if(Date.now() - _lastFocus < 3000) setTimeout(function(){ window.focus(); }, 0);
+    });
+    window.addEventListener('focus', function(){ _lastFocus = Date.now(); });
 
-    // Block attempts to open via anchor clicks that escape our override
-    document.addEventListener('click', function(e) {
-        var t = e.target;
-        while (t && t !== document) {
-            if (t.tagName === 'A' && t.target === '_blank' && !t.closest('.p-navbar, .p-unavail, .p-tips')) {
-                var href = t.getAttribute('href') || '';
-                // Only block if it's going to an external ad-like URL (not YouTube/JustWatch)
-                if (href && !href.includes('youtube.com') && !href.includes('justwatch.com') && !href.startsWith('/') && !href.startsWith('#')) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    return false;
-                }
-            }
-            t = t.parentNode;
-        }
+    // 3. beforeunload guard — stop redirect hijacks (user nav sets window._nav = true)
+    window.addEventListener('beforeunload', function(e){
+        if(!window._nav){ e.preventDefault(); e.returnValue=''; return ''; }
+    });
+
+    // 4. postMessage — drop ad events from embed iframes
+    window.addEventListener('message', function(e){
+        try{
+            var d = typeof e.data==='string' ? JSON.parse(e.data) : e.data;
+            if(d && (d.type==='ad'||d.event==='adImpression'||d.ad||d.advertisement))
+                e.stopImmediatePropagation();
+        }catch(_){}
     }, true);
 
-    // ── 2. BLOCK REDIRECT / LOCATION HIJACKS ────────────────────────────────────
-    // Embed sites often do `top.location = "ad-url"` or `parent.location.href = ...`
-    var _origAssign   = window.location.assign.bind(window.location);
-    var _origReplace  = window.location.replace.bind(window.location);
-    var _selfOrigin   = window.location.origin;
-
-    function isSafeRedirect(url) {
-        try {
-            var u = new URL(url, window.location.href);
-            return u.origin === _selfOrigin;
-        } catch(e) { return false; }
+    // 5. MutationObserver — remove injected ad iframes & fixed overlays
+    var AD = ['doubleclick','googlesyndication','popads','popcash','exoclick',
+              'juicyads','trafficjunky','adsterra','propellerads','hilltopads',
+              'clickadu','bidvertiser','adcash','pubmatic','openx','appnexus',
+              'criteo','outbrain','taboola','mgid','revcontent','ikocoin',
+              'coinzilla','a-ads','anonymous-ads','cointraffic'];
+    function isAd(src){
+        if(!src) return false;
+        try{ src = new URL(src).hostname; }catch(_){}
+        return AD.some(function(h){ return src.indexOf(h)!==-1; });
     }
-
-    // Protect top-level location from iframe child scripts
-    try {
-        Object.defineProperty(window, 'location', {
-            get: function() { return location; },
-            set: function(val) {
-                if (isSafeRedirect(val)) { window.location.href = val; }
-                // Otherwise silently swallow the redirect
-            }
-        });
-    } catch(e) {}
-
-    // ── 3. BLOCK AD NETWORK DOMAINS via fetch + XHR ─────────────────────────────
-    var AD_DOMAINS = [
-        'doubleclick.net','googlesyndication.com','googleadservices.com',
-        'google-analytics.com','analytics.google.com',
-        'adnxs.com','adsrvr.org','adform.net','adroll.com',
-        'outbrain.com','taboola.com','revcontent.com','mgid.com',
-        'popads.net','popcash.net','popunder.ru','trafficjunky.net',
-        'exoclick.com','juicyads.com','ero-advertising.com',
-        'adsterra.com','propellerads.com','hilltopads.net','clickadu.com',
-        'bidvertiser.com','monetizer.pro','pushground.com','adcash.com',
-        'zedo.com','valuecommerce.com','admaven.com','adpushup.com',
-        'cpmstar.com','yieldmanager.com','rubiconproject.com',
-        'pubmatic.com','openx.net','appnexus.com','criteo.com',
-        'media.net','advertising.com','yldbt.com','connexity.com',
-        'bountylead.com','clickaine.com','highcpmgate.com',
-        'ptrk.net','track.adform.net','servedby.advertising.com',
-        'syndication.twimg.com','ads.twitter.com','fb.ads','fbcdn.net',
-        'amazon-adsystem.com','a9.com','adsystem.amazon',
-        'scorecardresearch.com','chartbeat.com','quantserve.com',
-        'moatads.com','lijit.com','sharethrough.com'
-    ];
-
-    function isAdUrl(url) {
-        try {
-            var host = new URL(url).hostname;
-            return AD_DOMAINS.some(function(d) { return host === d || host.endsWith('.' + d); });
-        } catch(e) { return false; }
-    }
-
-    // Block fetch
-    var _origFetch = window.fetch;
-    window.fetch = function(input, init) {
-        var url = (input instanceof Request) ? input.url : String(input);
-        if (isAdUrl(url)) return new Promise(function(){});  // never resolves
-        return _origFetch.apply(this, arguments);
-    };
-
-    // Block XHR
-    var _origXHROpen = XMLHttpRequest.prototype.open;
-    XMLHttpRequest.prototype.open = function(method, url) {
-        if (isAdUrl(url)) {
-            this._blocked = true;
-            return;
-        }
-        return _origXHROpen.apply(this, arguments);
-    };
-    var _origXHRSend = XMLHttpRequest.prototype.send;
-    XMLHttpRequest.prototype.send = function() {
-        if (this._blocked) return;
-        return _origXHRSend.apply(this, arguments);
-    };
-
-    // ── 4. REMOVE INJECTED AD IFRAMES & OVERLAYS ────────────────────────────────
-    // Many embed players inject ad overlays or extra iframes into the page
-    var _observer = new MutationObserver(function(mutations) {
-        mutations.forEach(function(m) {
-            m.addedNodes.forEach(function(node) {
-                if (node.nodeType !== 1) return;
-                var tag = node.tagName;
-                var src = node.src || node.href || '';
-
-                // Remove iframes that aren't our player-frame
-                if (tag === 'IFRAME' && node.id !== 'player-frame') {
-                    if (isAdUrl(src) || node.style.position === 'fixed' || node.style.zIndex > 9000) {
-                        node.remove();
-                        return;
-                    }
+    new MutationObserver(function(ms){
+        ms.forEach(function(m){
+            m.addedNodes.forEach(function(n){
+                if(!n||n.nodeType!==1) return;
+                var tag=(n.tagName||'').toUpperCase(), src=n.src||n.href||'';
+                if(tag==='IFRAME' && n.id!=='player-frame'){
+                    if(isAd(src)||n.style.position==='fixed'||parseInt(n.style.zIndex)>9000){ n.remove(); return; }
                 }
-                // Remove fixed-position ad overlays (divs with very high z-index)
-                if ((tag === 'DIV' || tag === 'SECTION') && node.style) {
-                    var z = parseInt(node.style.zIndex) || 0;
-                    var pos = node.style.position;
-                    if (z > 99999 && (pos === 'fixed' || pos === 'absolute')) {
-                        node.remove();
-                        return;
-                    }
-                }
-                // Block script tags loading ad domains
-                if (tag === 'SCRIPT' && node.src && isAdUrl(node.src)) {
-                    node.remove();
-                }
+                if((tag==='DIV'||tag==='SECTION') &&
+                    parseInt(n.style.zIndex)>99999 &&
+                    (n.style.position==='fixed'||n.style.position==='absolute')){ n.remove(); return; }
+                if(tag==='SCRIPT' && isAd(src)) n.remove();
             });
         });
-    });
-    _observer.observe(document.documentElement, { childList: true, subtree: true });
+    }).observe(document.documentElement,{childList:true,subtree:true});
 
-    // ── 5. BLOCK CONTEXT-MENU TRICKS & KEY TRAPS ────────────────────────────────
-    // Some ads trap right-click or keyboard shortcuts
-    window.addEventListener('contextmenu', function(e) {
-        // Allow context menu on our player controls, block elsewhere
-        if (e.target && e.target.id === 'player-frame') e.preventDefault();
-    });
-
-    // Prevent embed from capturing keyboard focus away from our controls
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            // Don't let embeds swallow Escape
-            e.stopPropagation();
+    // 6. Block external _blank clicks (allow YouTube/JustWatch)
+    document.addEventListener('click', function(e){
+        var t=e.target;
+        while(t && t!==document){
+            if(t.tagName==='A' && t.target==='_blank'){
+                var h=t.href||'';
+                if(h && !h.includes('youtube.com') && !h.includes('justwatch.com')
+                   && !t.closest('.p-unavail,.p-navbar')){ e.preventDefault(); e.stopPropagation(); return; }
+            }
+            t=t.parentNode;
         }
     }, true);
 
-    // ── 6. REMOVE ADS FROM PLAYER IFRAME (post-load cleanup) ───────────────────
-    // After the player iframe loads, try to hide overlay ads inside it
-    // (only works if same-origin — will silently fail cross-origin)
-    window.addEventListener('message', function(e) {
-        // Silently drop ad-related postMessages from embed iframes
-        try {
-            var d = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
-            if (d && (d.type === 'ad' || d.event === 'adImpression' || d.event === 'adStart')) {
-                e.stopImmediatePropagation();
-            }
-        } catch(err) {}
-    }, true);
-
-    console.log('%c🛡️ Ad Blocker Active', 'color:#22c55e;font-weight:bold;font-size:14px');
+    console.log('%c🛡️ Nuclear Ad Blocker Active','color:#22c55e;font-weight:bold;font-size:14px');
 })();
 </script>
 
 <script>
-
-    // ── Parse URL params ─────────────────────────────────────────────────────────
     const params    = new URLSearchParams(window.location.search);
     const mid       = params.get('id')    || '';
     const mtitle    = params.get('title') || 'Movie';
-    // "from" = the movie title that was searched (plain text, URL-encoded)
     const fromMovie = params.get('from')  || '';
 
-    // ── Set title ────────────────────────────────────────────────────────────────
     document.getElementById('display-title').textContent = mtitle;
     document.title = 'iBOMMA RAHUL – ' + mtitle;
 
-    // ── Back button: label and behavior ──────────────────────────────────────────
     const backBtn = document.getElementById('back-btn');
-    if (window.opener) {
-        // Opened in a new tab — show "Close Tab" label
-        backBtn.textContent = '✕ Close Tab';
-    }
-    backBtn.addEventListener('click', function () {
-        if (window.opener) {
-            // New tab opened by Watch button — just close this tab
-            window.close();
-            return;
-        }
-        if (fromMovie) {
-            // Go back to the recs page for this movie
-            window.location.href = '/?recs=1&movie=' + encodeURIComponent(fromMovie);
-        } else if (window.history.length > 1) {
-            window.history.back();
-        } else {
-            window.location.href = '/';
-        }
+    if(window.opener) backBtn.textContent = '✕ Close Tab';
+    backBtn.addEventListener('click', function(){
+        window._nav = true;
+        if(window.opener){ window.close(); return; }
+        if(fromMovie){
+            window.location.href = 'https://cinephile-ai.streamlit.app/?recs=1&movie=' + encodeURIComponent(fromMovie);
+        } else { window.history.length > 1 ? window.history.back() : window.close(); }
     });
 
-    // ── Server list (prioritised: best first) ───────────────────────────────────
-    // Server 1 & 2: Most reliable as of 2025
+    // Server order: LEAST ADS first
     const servers = {
-        s1: 'https://vidlink.pro/movie/' + mid,
-        s2: 'https://vidsrc.cc/v2/embed/movie/' + mid,
-        s3: 'https://moviesapi.club/movie/' + mid,
-        s4: 'https://www.2embed.cc/embed/' + mid,
-        s5: 'https://vidsrc.rip/embed/movie/' + mid,
-        s6: 'https://embed.su/embed/movie/' + mid
+        s1: 'https://vidsrc.cc/v2/embed/movie/'  + mid,   // ✅ fewest ads
+        s2: 'https://embed.su/embed/movie/'       + mid,   // ✅ clean
+        s3: 'https://vidsrc.rip/embed/movie/'     + mid,   // ✅ decent
+        s4: 'https://www.2embed.cc/embed/'         + mid,   // moderate
+        s5: 'https://vidlink.pro/movie/'           + mid,   // more ads (last resort)
+        s6: 'https://moviesapi.club/movie/'        + mid    // fallback
     };
-
-    const serverNames = {
-        s1: 'VidLink',
-        s2: 'VidSrc CC',
-        s3: 'MoviesAPI',
-        s4: '2Embed',
-        s5: 'VidSrc RIP',
-        s6: 'Embed.su'
-    };
-
+    const serverNames = { s1:'VidSrc CC', s2:'Embed.su', s3:'VidSrc RIP', s4:'2Embed', s5:'VidLink', s6:'MoviesAPI' };
     const ORDER = ['s1','s2','s3','s4','s5','s6'];
 
-    let blankTimer   = null;
-    let realSrcLoaded = false;  // Ignore the initial about:blank onload
-    let currentKey   = null;
-    let autoTryIndex = 0;       // For auto-cycling servers on blank
-    let isAutoCycling = false;
+    let blankTimer=null, realSrcLoaded=false, currentKey=null, isAutoCycling=false;
+    const statusEl=document.getElementById('srv-status');
+    const loadEl=document.getElementById('pload');
+    const loadText=document.getElementById('loading-text');
+    const loadSub=document.getElementById('loading-sub');
 
-    const statusEl = document.getElementById('srv-status');
-    const loadEl   = document.getElementById('pload');
-    const loadText = document.getElementById('loading-text');
-    const loadSub  = document.getElementById('loading-sub');
-
-    // ── Helpers ──────────────────────────────────────────────────────────────────
-    function setStatus(state, text) {
-        statusEl.className = 'srv-status ' + state;
-        statusEl.textContent = text;
-    }
-
-    function activateBtn(key) {
-        document.querySelectorAll('.srv-btn').forEach(b => {
-            b.classList.toggle('active', b.dataset.key === key);
-        });
-        currentKey = key;
-    }
-
-    function showLoadingFor(key) {
+    function setStatus(s,t){ statusEl.className='srv-status '+s; statusEl.textContent=t; }
+    function activateBtn(k){ document.querySelectorAll('.srv-btn').forEach(b=>b.classList.toggle('active',b.dataset.key===k)); currentKey=k; }
+    function showLoadingFor(k){
         loadEl.classList.remove('hidden');
         document.getElementById('punavail').classList.remove('show');
-        loadText.textContent = 'Connecting to ' + serverNames[key] + '…';
-        loadSub.textContent  = 'Server ' + (ORDER.indexOf(key)+1) + ' of 6';
-        setStatus('trying', 'Trying ' + serverNames[key] + '…');
+        loadText.textContent='Connecting to '+serverNames[k]+'…';
+        loadSub.textContent='Server '+(ORDER.indexOf(k)+1)+' of 6';
+        setStatus('trying','Trying '+serverNames[k]+'…');
     }
-
-    // ── Timer: if iframe stays blank for 6s, auto-try next server ───────────────
-    function startTimer(key) {
+    function startTimer(k){
         clearTimeout(blankTimer);
-        blankTimer = setTimeout(function () {
-            // iframe still loading or blank — try next server automatically
-            var ld = loadEl;
-            if (ld && !ld.classList.contains('hidden')) {
-                var nextIdx = ORDER.indexOf(key) + 1;
-                if (nextIdx < ORDER.length && isAutoCycling) {
-                    var nextKey = ORDER[nextIdx];
-                    activateBtn(nextKey);
-                    showLoadingFor(nextKey);
-                    document.getElementById('player-frame').src = servers[nextKey];
-                    startTimer(nextKey);
-                } else {
-                    ld.classList.add('hidden');
-                    showUnavail();
-                }
+        blankTimer=setTimeout(function(){
+            if(loadEl && !loadEl.classList.contains('hidden')){
+                var ni=ORDER.indexOf(k)+1;
+                if(ni<ORDER.length && isAutoCycling){
+                    var nk=ORDER[ni]; activateBtn(nk); showLoadingFor(nk);
+                    document.getElementById('player-frame').src=servers[nk]; startTimer(nk);
+                } else { loadEl.classList.add('hidden'); showUnavail(); }
             }
-        }, 6000);
+        }, 7000);
     }
-
-    // ── Show unavailable overlay ─────────────────────────────────────────────────
-    function showUnavail() {
-        setStatus('dead', 'All servers failed');
-        document.getElementById('yt-link').href =
-            'https://www.youtube.com/results?search_query=' + encodeURIComponent(mtitle + ' official trailer');
-        document.getElementById('jw-link').href =
-            'https://www.justwatch.com/in/search?q=' + encodeURIComponent(mtitle);
+    function showUnavail(){
+        setStatus('dead','All servers failed');
+        document.getElementById('yt-link').href='https://www.youtube.com/results?search_query='+encodeURIComponent(mtitle+' official trailer');
+        document.getElementById('jw-link').href='https://www.justwatch.com/in/search?q='+encodeURIComponent(mtitle);
         document.getElementById('punavail').classList.add('show');
     }
-
-    // ── onload fires when iframe navigates ───────────────────────────────────────
-    function onFrameLoad() {
-        if (!realSrcLoaded) return;   // Ignore initial about:blank load
-        clearTimeout(blankTimer);
-        loadEl.classList.add('hidden');
-        setStatus('live', '🟢 Live – ' + serverNames[currentKey]);
+    function onFrameLoad(){
+        if(!realSrcLoaded) return;
+        clearTimeout(blankTimer); loadEl.classList.add('hidden');
+        setStatus('live','🟢 Live – '+serverNames[currentKey]);
+        try{ document.getElementById('player-frame').contentWindow.open=function(){return null;}; }catch(_){}
     }
-
-    // ── Manual server switch ─────────────────────────────────────────────────────
-    function loadSrc(key, btn) {
-        isAutoCycling = false;  // User picked manually – don't auto-cycle
-        activateBtn(key);
-        showLoadingFor(key);
-        document.getElementById('player-frame').src = servers[key];
-        startTimer(key);
+    function loadSrc(k){
+        isAutoCycling=false; activateBtn(k); showLoadingFor(k);
+        document.getElementById('player-frame').src=servers[k]; startTimer(k);
     }
-
-    // ── Retry all ────────────────────────────────────────────────────────────────
-    function retryAll() {
-        isAutoCycling = true;
-        document.getElementById('punavail').classList.remove('show');
-        var key = ORDER[0];
-        activateBtn(key);
-        showLoadingFor(key);
-        document.getElementById('player-frame').src = servers[key];
-        startTimer(key);
+    function retryAll(){
+        isAutoCycling=true; document.getElementById('punavail').classList.remove('show');
+        var k=ORDER[0]; activateBtn(k); showLoadingFor(k);
+        document.getElementById('player-frame').src=servers[k]; startTimer(k);
     }
-
-    // ── Fullscreen ───────────────────────────────────────────────────────────────
-    function goFullscreen() {
-        var wrap = document.getElementById('pwrap');
-        if (!document.fullscreenElement && !document.webkitFullscreenElement) {
-            var req = wrap.requestFullscreen || wrap.webkitRequestFullscreen || wrap.mozRequestFullScreen;
-            if (req) req.call(wrap).catch(function(){});
+    function goFullscreen(){
+        var w=document.getElementById('pwrap');
+        if(!document.fullscreenElement && !document.webkitFullscreenElement){
+            var r=w.requestFullscreen||w.webkitRequestFullscreen||w.mozRequestFullScreen;
+            if(r) r.call(w).catch(function(){});
         } else {
-            var ex = document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen;
-            if (ex) ex.call(document);
+            var ex=document.exitFullscreen||document.webkitExitFullscreen||document.mozCancelFullScreen;
+            if(ex) ex.call(document);
         }
     }
-
-    ['fullscreenchange','webkitfullscreenchange','mozfullscreenchange'].forEach(function(ev) {
-        document.addEventListener(ev, function() {
-            var on = !!(document.fullscreenElement || document.webkitFullscreenElement);
-            document.getElementById('fs-expand').style.display  = on ? 'none' : '';
-            document.getElementById('fs-collapse').style.display = on ? '' : 'none';
+    ['fullscreenchange','webkitfullscreenchange','mozfullscreenchange'].forEach(function(ev){
+        document.addEventListener(ev, function(){
+            var on=!!(document.fullscreenElement||document.webkitFullscreenElement);
+            document.getElementById('fs-expand').style.display=on?'none':'';
+            document.getElementById('fs-collapse').style.display=on?'':'none';
         });
     });
-
-    document.addEventListener('keydown', function(e) {
-        if ((e.key === 'f' || e.key === 'F') && !e.ctrlKey && !e.metaKey && !e.altKey) goFullscreen();
+    document.addEventListener('keydown', function(e){
+        if((e.key==='f'||e.key==='F') && !e.ctrlKey && !e.metaKey && !e.altKey) goFullscreen();
     });
-
-    // ── Animated loading dots ────────────────────────────────────────────────────
-    var dots = 0;
-    setInterval(function() {
-        dots = (dots + 1) % 4;
-        if (!loadEl.classList.contains('hidden')) {
-            loadText.textContent = loadText.textContent.replace(/\.+$/, '') + '.'.repeat(dots);
-        }
+    var dots=0;
+    setInterval(function(){
+        dots=(dots+1)%4;
+        if(!loadEl.classList.contains('hidden'))
+            loadText.textContent=loadText.textContent.replace(/\.+$/,'')+'.'.repeat(dots);
     }, 600);
 
-    // ── Auto-start: try s1 first, cycle if blank ─────────────────────────────────
-    isAutoCycling = true;
-    setTimeout(function() {
-        realSrcLoaded = true;
-        var key = ORDER[0];
-        activateBtn(key);
-        showLoadingFor(key);
-        document.getElementById('player-frame').src = servers[key];
-        startTimer(key);
+    // Auto-start with VidSrc CC (fewest ads)
+    isAutoCycling=true;
+    setTimeout(function(){
+        realSrcLoaded=true;
+        var k=ORDER[0]; activateBtn(k); showLoadingFor(k);
+        document.getElementById('player-frame').src=servers[k]; startTimer(k);
     }, 100);
 </script>
 </body>

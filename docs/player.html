@@ -363,8 +363,131 @@
         } else { window.history.length > 1 ? window.history.back() : window.close(); }
     });
 
-    // Server order: sandbox-compatible servers first (no popup ads)
-    // VidSrc CC & Embed.su work with sandbox; VidLink detects sandbox (switch if needed)
+    // ── DYNAMIC SANDBOX ─────────────────────────────────────────────────────────
+    // VidLink (s1) needs NO sandbox — it detects and refuses it, but has the LARGEST catalog
+    // All other servers get sandbox WITHOUT allow-popups = browser blocks their popup ads
+    const SANDBOX_VAL = 'allow-scripts allow-same-origin allow-forms allow-presentation allow-modals';
+    const NO_SANDBOX_SERVERS = new Set(['s1']); // VidLink only
+
+    function setSandboxFor(k) {
+        var f = document.getElementById('player-frame');
+        if (NO_SANDBOX_SERVERS.has(k)) {
+            f.removeAttribute('sandbox');
+        } else {
+            f.setAttribute('sandbox', SANDBOX_VAL);
+        }
+    }
+
+    // ── Servers — VidLink first (biggest catalog), sandboxed servers 2-6 ─────────
+    const servers = {
+        s1: 'https://vidlink.pro/movie/'           + mid,  // largest catalog, no sandbox
+        s2: 'https://vidsrc.cc/v2/embed/movie/'   + mid,  // ✅ sandbox → no popups
+        s3: 'https://embed.su/embed/movie/'        + mid,  // ✅ sandbox → no popups
+        s4: 'https://vidsrc.rip/embed/movie/'      + mid,  // ✅ sandbox → no popups
+        s5: 'https://www.2embed.cc/embed/'         + mid,  // ✅ sandbox → no popups
+        s6: 'https://moviesapi.club/movie/'        + mid   // ✅ sandbox → no popups
+    };
+    const serverNames = {
+        s1:'VidLink', s2:'VidSrc CC', s3:'Embed.su',
+        s4:'VidSrc RIP', s5:'2Embed', s6:'MoviesAPI'
+    };
+    const ORDER = ['s1','s2','s3','s4','s5','s6'];
+
+    let blankTimer=null, realSrcLoaded=false, currentKey=null, isAutoCycling=false;
+    const statusEl=document.getElementById('srv-status');
+    const loadEl=document.getElementById('pload');
+    const loadText=document.getElementById('loading-text');
+    const loadSub=document.getElementById('loading-sub');
+
+    function setStatus(s,t){ statusEl.className='srv-status '+s; statusEl.textContent=t; }
+    function activateBtn(k){ document.querySelectorAll('.srv-btn').forEach(b=>b.classList.toggle('active',b.dataset.key===k)); currentKey=k; }
+    function showLoadingFor(k){
+        loadEl.classList.remove('hidden');
+        document.getElementById('punavail').classList.remove('show');
+        loadText.textContent='Connecting to '+serverNames[k]+'…';
+        loadSub.textContent='Server '+(ORDER.indexOf(k)+1)+' of 6';
+        setStatus('trying','Trying '+serverNames[k]+'…');
+    }
+    function startTimer(k){
+        clearTimeout(blankTimer);
+        blankTimer=setTimeout(function(){
+            if(loadEl && !loadEl.classList.contains('hidden')){
+                var ni=ORDER.indexOf(k)+1;
+                if(ni<ORDER.length && isAutoCycling){
+                    var nk=ORDER[ni];
+                    activateBtn(nk); showLoadingFor(nk);
+                    setSandboxFor(nk);
+                    document.getElementById('player-frame').src=servers[nk];
+                    startTimer(nk);
+                } else { loadEl.classList.add('hidden'); showUnavail(); }
+            }
+        }, 8000);
+    }
+    function showUnavail(){
+        setStatus('dead','All servers failed');
+        document.getElementById('yt-link').href='https://www.youtube.com/results?search_query='+encodeURIComponent(mtitle+' official trailer');
+        document.getElementById('jw-link').href='https://www.justwatch.com/in/search?q='+encodeURIComponent(mtitle);
+        document.getElementById('punavail').classList.add('show');
+    }
+    function onFrameLoad(){
+        if(!realSrcLoaded) return;
+        clearTimeout(blankTimer);
+        loadEl.classList.add('hidden');
+        setStatus('live','🟢 Live – '+serverNames[currentKey]);
+        try{ document.getElementById('player-frame').contentWindow.open=function(){return null;}; }catch(_){}
+    }
+    function loadSrc(k){
+        isAutoCycling=false;
+        activateBtn(k); showLoadingFor(k);
+        setSandboxFor(k);
+        document.getElementById('player-frame').src=servers[k];
+        startTimer(k);
+    }
+    function retryAll(){
+        isAutoCycling=true;
+        document.getElementById('punavail').classList.remove('show');
+        var k=ORDER[0]; activateBtn(k); showLoadingFor(k);
+        setSandboxFor(k);
+        document.getElementById('player-frame').src=servers[k];
+        startTimer(k);
+    }
+    function goFullscreen(){
+        var w=document.getElementById('pwrap');
+        if(!document.fullscreenElement && !document.webkitFullscreenElement){
+            var r=w.requestFullscreen||w.webkitRequestFullscreen||w.mozRequestFullScreen;
+            if(r) r.call(w).catch(function(){});
+        } else {
+            var ex=document.exitFullscreen||document.webkitExitFullscreen||document.mozCancelFullScreen;
+            if(ex) ex.call(document);
+        }
+    }
+    ['fullscreenchange','webkitfullscreenchange','mozfullscreenchange'].forEach(function(ev){
+        document.addEventListener(ev, function(){
+            var on=!!(document.fullscreenElement||document.webkitFullscreenElement);
+            document.getElementById('fs-expand').style.display=on?'none':'';
+            document.getElementById('fs-collapse').style.display=on?'':'none';
+        });
+    });
+    document.addEventListener('keydown', function(e){
+        if((e.key==='f'||e.key==='F') && !e.ctrlKey && !e.metaKey && !e.altKey) goFullscreen();
+    });
+    var dots=0;
+    setInterval(function(){
+        dots=(dots+1)%4;
+        if(!loadEl.classList.contains('hidden'))
+            loadText.textContent=loadText.textContent.replace(/\.+$/,'')+'.'.repeat(dots);
+    }, 600);
+
+    // Auto-start with VidLink (no sandbox — largest movie catalog)
+    isAutoCycling=true;
+    setTimeout(function(){
+        realSrcLoaded=true;
+        var k=ORDER[0]; activateBtn(k); showLoadingFor(k);
+        setSandboxFor(k);   // removes sandbox for VidLink
+        document.getElementById('player-frame').src=servers[k];
+        startTimer(k);
+    }, 100);
+
     const servers = {
         s1: 'https://vidsrc.cc/v2/embed/movie/'   + mid,  // ✅ sandbox-compatible, fewest ads
         s2: 'https://embed.su/embed/movie/'        + mid,  // ✅ sandbox-compatible, clean

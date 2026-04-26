@@ -257,7 +257,9 @@
             </div>
 
             <!-- The player iframe -->
+            <!-- sandbox WITHOUT allow-popups = popup ads from embed are browser-blocked -->
             <iframe id="player-frame"
+                sandbox="allow-scripts allow-same-origin allow-forms allow-presentation allow-modals"
                 allowfullscreen
                 allow="autoplay; encrypted-media; fullscreen; picture-in-picture; web-share"
                 src="about:blank"
@@ -361,19 +363,19 @@
         } else { window.history.length > 1 ? window.history.back() : window.close(); }
     });
 
-    // Server order: most reliable / best movie coverage first
-    // VidLink first — best coverage; VidSrc CC second — fewest ads but limited library
+    // Server order: sandbox-compatible servers first (no popup ads)
+    // VidSrc CC & Embed.su work with sandbox; VidLink detects sandbox (switch if needed)
     const servers = {
-        s1: 'https://vidlink.pro/movie/'           + mid,
-        s2: 'https://vidsrc.cc/v2/embed/movie/'   + mid,
-        s3: 'https://embed.su/embed/movie/'        + mid,
-        s4: 'https://vidsrc.rip/embed/movie/'      + mid,
-        s5: 'https://www.2embed.cc/embed/'         + mid,
-        s6: 'https://moviesapi.club/movie/'        + mid
+        s1: 'https://vidsrc.cc/v2/embed/movie/'   + mid,  // ✅ sandbox-compatible, fewest ads
+        s2: 'https://embed.su/embed/movie/'        + mid,  // ✅ sandbox-compatible, clean
+        s3: 'https://vidsrc.rip/embed/movie/'      + mid,  // ✅ works with sandbox
+        s4: 'https://www.2embed.cc/embed/'         + mid,  // moderate
+        s5: 'https://moviesapi.club/movie/'        + mid,  // fallback
+        s6: 'https://vidlink.pro/movie/'           + mid   // may warn about sandbox
     };
     const serverNames = {
-        s1:'VidLink', s2:'VidSrc CC', s3:'Embed.su',
-        s4:'VidSrc RIP', s5:'2Embed', s6:'MoviesAPI'
+        s1:'VidSrc CC', s2:'Embed.su', s3:'VidSrc RIP',
+        s4:'2Embed', s5:'MoviesAPI', s6:'VidLink'
     };
     const ORDER = ['s1','s2','s3','s4','s5','s6'];
 

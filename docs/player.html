@@ -293,28 +293,17 @@
         iBOMMA RAHUL &nbsp;•&nbsp; Premium Streaming &nbsp;•&nbsp; 6 Servers Available
     </div>
 
-<!-- ═══════════════ NUCLEAR AD BLOCKER ═══════════════ -->
+<!-- ═══════════════ AD BLOCKER ═══════════════ -->
 <script>
 (function(){
     'use strict';
-    // 1. Kill window.open PERMANENTLY every 100ms — embed scripts can't restore it
+
+    // 1. Kill window.open every 100ms — blocks popup ads even if embed restores it
     var _noop = function(){ return null; };
     window.open = _noop;
     setInterval(function(){ window.open = _noop; }, 100);
 
-    // 2. Blur trap — embed servers detect window.blur to fire popup, we re-focus instantly
-    var _lastFocus = Date.now();
-    window.addEventListener('blur', function(){
-        if(Date.now() - _lastFocus < 3000) setTimeout(function(){ window.focus(); }, 0);
-    });
-    window.addEventListener('focus', function(){ _lastFocus = Date.now(); });
-
-    // 3. beforeunload guard — stop redirect hijacks (user nav sets window._nav = true)
-    window.addEventListener('beforeunload', function(e){
-        if(!window._nav){ e.preventDefault(); e.returnValue=''; return ''; }
-    });
-
-    // 4. postMessage — drop ad events from embed iframes
+    // 2. postMessage — drop ad events from embed iframes
     window.addEventListener('message', function(e){
         try{
             var d = typeof e.data==='string' ? JSON.parse(e.data) : e.data;
@@ -323,7 +312,7 @@
         }catch(_){}
     }, true);
 
-    // 5. MutationObserver — remove injected ad iframes & fixed overlays
+    // 3. MutationObserver — remove injected ad iframes & fixed overlays
     var AD = ['doubleclick','googlesyndication','popads','popcash','exoclick',
               'juicyads','trafficjunky','adsterra','propellerads','hilltopads',
               'clickadu','bidvertiser','adcash','pubmatic','openx','appnexus',
@@ -350,20 +339,7 @@
         });
     }).observe(document.documentElement,{childList:true,subtree:true});
 
-    // 6. Block external _blank clicks (allow YouTube/JustWatch)
-    document.addEventListener('click', function(e){
-        var t=e.target;
-        while(t && t!==document){
-            if(t.tagName==='A' && t.target==='_blank'){
-                var h=t.href||'';
-                if(h && !h.includes('youtube.com') && !h.includes('justwatch.com')
-                   && !t.closest('.p-unavail,.p-navbar')){ e.preventDefault(); e.stopPropagation(); return; }
-            }
-            t=t.parentNode;
-        }
-    }, true);
-
-    console.log('%c🛡️ Nuclear Ad Blocker Active','color:#22c55e;font-weight:bold;font-size:14px');
+    console.log('%c🛡️ Ad Blocker Active','color:#22c55e;font-weight:bold;font-size:14px');
 })();
 </script>
 
@@ -379,23 +355,26 @@
     const backBtn = document.getElementById('back-btn');
     if(window.opener) backBtn.textContent = '✕ Close Tab';
     backBtn.addEventListener('click', function(){
-        window._nav = true;
         if(window.opener){ window.close(); return; }
         if(fromMovie){
             window.location.href = 'https://cinephile-ai.streamlit.app/?recs=1&movie=' + encodeURIComponent(fromMovie);
         } else { window.history.length > 1 ? window.history.back() : window.close(); }
     });
 
-    // Server order: LEAST ADS first
+    // Server order: most reliable / best movie coverage first
+    // VidLink first — best coverage; VidSrc CC second — fewest ads but limited library
     const servers = {
-        s1: 'https://vidsrc.cc/v2/embed/movie/'  + mid,   // ✅ fewest ads
-        s2: 'https://embed.su/embed/movie/'       + mid,   // ✅ clean
-        s3: 'https://vidsrc.rip/embed/movie/'     + mid,   // ✅ decent
-        s4: 'https://www.2embed.cc/embed/'         + mid,   // moderate
-        s5: 'https://vidlink.pro/movie/'           + mid,   // more ads (last resort)
-        s6: 'https://moviesapi.club/movie/'        + mid    // fallback
+        s1: 'https://vidlink.pro/movie/'           + mid,
+        s2: 'https://vidsrc.cc/v2/embed/movie/'   + mid,
+        s3: 'https://embed.su/embed/movie/'        + mid,
+        s4: 'https://vidsrc.rip/embed/movie/'      + mid,
+        s5: 'https://www.2embed.cc/embed/'         + mid,
+        s6: 'https://moviesapi.club/movie/'        + mid
     };
-    const serverNames = { s1:'VidSrc CC', s2:'Embed.su', s3:'VidSrc RIP', s4:'2Embed', s5:'VidLink', s6:'MoviesAPI' };
+    const serverNames = {
+        s1:'VidLink', s2:'VidSrc CC', s3:'Embed.su',
+        s4:'VidSrc RIP', s5:'2Embed', s6:'MoviesAPI'
+    };
     const ORDER = ['s1','s2','s3','s4','s5','s6'];
 
     let blankTimer=null, realSrcLoaded=false, currentKey=null, isAutoCycling=false;
@@ -423,7 +402,7 @@
                     document.getElementById('player-frame').src=servers[nk]; startTimer(nk);
                 } else { loadEl.classList.add('hidden'); showUnavail(); }
             }
-        }, 7000);
+        }, 8000);
     }
     function showUnavail(){
         setStatus('dead','All servers failed');
@@ -433,8 +412,10 @@
     }
     function onFrameLoad(){
         if(!realSrcLoaded) return;
-        clearTimeout(blankTimer); loadEl.classList.add('hidden');
+        clearTimeout(blankTimer);
+        loadEl.classList.add('hidden');
         setStatus('live','🟢 Live – '+serverNames[currentKey]);
+        // Try to suppress popups inside the iframe (silently fails if cross-origin)
         try{ document.getElementById('player-frame').contentWindow.open=function(){return null;}; }catch(_){}
     }
     function loadSrc(k){
@@ -473,7 +454,7 @@
             loadText.textContent=loadText.textContent.replace(/\.+$/,'')+'.'.repeat(dots);
     }, 600);
 
-    // Auto-start with VidSrc CC (fewest ads)
+    // Auto-start
     isAutoCycling=true;
     setTimeout(function(){
         realSrcLoaded=true;

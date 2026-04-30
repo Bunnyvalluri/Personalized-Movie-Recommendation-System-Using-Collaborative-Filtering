@@ -107,6 +107,18 @@ def fetch_trending():
     data = tmdb_get("trending/movie/week?")
     return data.get('results', [])[:10] if data else []
 
+@st.cache_data(ttl=TRENDING_TTL, show_spinner=False)
+def fetch_telugu_movies():
+    """Fetches the top 10 popular Telugu movies. Cached for 30 minutes."""
+    data = tmdb_get("discover/movie?with_original_language=te&sort_by=popularity.desc")
+    return data.get('results', [])[:10] if data else []
+
+@st.cache_data(ttl=TRENDING_TTL, show_spinner=False)
+def fetch_hindi_movies():
+    """Fetches the top 10 popular Hindi movies. Cached for 30 minutes."""
+    data = tmdb_get("discover/movie?with_original_language=hi&sort_by=popularity.desc")
+    return data.get('results', [])[:10] if data else []
+
 
 
 def safe_year(val):
@@ -964,22 +976,46 @@ if show_recs or ("recs" in st.query_params):
         </div>
         """, unsafe_allow_html=True)
 else:
-    # On load, show Trending movies (cached after first load – instant on refresh)
-    with st.spinner('⚡ Fetching trending movies…'):
+    # On load, show curated categories (cached after first load – instant on refresh)
+    with st.spinner('⚡ Fetching curated movies for iBOMMA RAHUL…'):
         trending = fetch_trending()
-        if trending:
-            t_ids = [str(m['id']) for m in trending]
-            with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
-                t_details = list(executor.map(fetch_movie_details, t_ids))
+        telugu = fetch_telugu_movies()
+        hindi = fetch_hindi_movies()
+        
+        all_movies = trending + telugu + hindi
+        if all_movies:
+            all_ids = [str(m['id']) for m in all_movies]
+            
+            # Fetch all details in parallel extremely fast
+            with concurrent.futures.ThreadPoolExecutor(max_workers=30) as executor:
+                all_details = list(executor.map(fetch_movie_details, all_ids))
+            
+            # Split them back up safely
+            def extract_data(movie_list, start_idx):
+                end_idx = start_idx + len(movie_list)
+                names = [m.get('title', 'Unknown') for m in movie_list]
+                years = [safe_year(m.get('release_date', '')) for m in movie_list]
+                ratings = [safe_rating(m.get('vote_average', 0)) for m in movie_list]
+                ids = [str(m['id']) for m in movie_list]
+                details = all_details[start_idx:end_idx]
+                return names, years, ratings, ids, details
+            
+            if trending:
+                tn, ty, tr, ti, td = extract_data(trending, 0)
+                st.markdown("<div class='section-title'>🔥 Trending This Week <span style='font-size:0.8rem; vertical-align:middle; margin-left:10px; background:rgba(229,9,20,0.1); padding:4px 12px; border-radius:20px; border:1px solid rgba(229,9,20,0.3); color:#e50914; letter-spacing:1px;'>🔴 LIVE</span></div>", unsafe_allow_html=True)
+                render_movie_cards(tn, ty, tr, ti, td)
+                
+            if telugu:
+                tn, ty, tr, ti, td = extract_data(telugu, len(trending))
+                st.markdown("<div class='section-title'>🎬 Top Telugu Blockbusters</div>", unsafe_allow_html=True)
+                render_movie_cards(tn, ty, tr, ti, td)
 
-            t_names   = [m.get('title', 'Unknown') for m in trending]
-            t_years   = [safe_year(m.get('release_date', '')) for m in trending]
-            t_ratings = [safe_rating(m.get('vote_average', 0)) for m in trending]
-
-            st.markdown("<div class='section-title'>🔥 Trending This Week <span style='font-size:0.8rem; vertical-align:middle; margin-left:10px; background:rgba(229,9,20,0.1); padding:4px 12px; border-radius:20px; border:1px solid rgba(229,9,20,0.3); color:#e50914; letter-spacing:1px;'>🔴 LIVE</span></div>", unsafe_allow_html=True)
-            render_movie_cards(t_names, t_years, t_ratings, t_ids, t_details)
+            if hindi:
+                tn, ty, tr, ti, td = extract_data(hindi, len(trending) + len(telugu))
+                st.markdown("<div class='section-title'>🌟 Latest Hindi Hits</div>", unsafe_allow_html=True)
+                render_movie_cards(tn, ty, tr, ti, td)
         else:
-            st.info("Could not load trending movies. Please check your internet connection.")
+            st.info("Could not load movies. Please check your internet connection.")
 
 st.markdown("""
 <div style="margin-top: 100px; padding: 80px 40px; background: rgba(0,0,0,0.5); border-top: 1px solid rgba(255,255,255,0.05); text-align: center;">

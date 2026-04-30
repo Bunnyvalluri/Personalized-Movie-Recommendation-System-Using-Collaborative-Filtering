@@ -1000,20 +1000,25 @@ else:
                 details = all_details[start_idx:end_idx]
                 return names, years, ratings, ids, details
             
-            if trending:
-                tn, ty, tr, ti, td = extract_data(trending, 0)
-                st.markdown("<div class='section-title'>🔥 Trending This Week <span style='font-size:0.8rem; vertical-align:middle; margin-left:10px; background:rgba(229,9,20,0.1); padding:4px 12px; border-radius:20px; border:1px solid rgba(229,9,20,0.3); color:#e50914; letter-spacing:1px;'>🔴 LIVE</span></div>", unsafe_allow_html=True)
-                render_movie_cards(tn, ty, tr, ti, td)
-                
-            if telugu:
-                tn, ty, tr, ti, td = extract_data(telugu, len(trending))
-                st.markdown("<div class='section-title'>🎬 Top Telugu Blockbusters</div>", unsafe_allow_html=True)
-                render_movie_cards(tn, ty, tr, ti, td)
+            tab1, tab2, tab3 = st.tabs(["🇺🇸 English / Hollywood", "🇮🇳 Telugu Blockbusters", "🇮🇳 Hindi Hits"])
+            
+            with tab1:
+                if trending:
+                    tn, ty, tr, ti, td = extract_data(trending, 0)
+                    st.markdown("<div class='section-title'>🔥 Trending This Week <span style='font-size:0.8rem; vertical-align:middle; margin-left:10px; background:rgba(229,9,20,0.1); padding:4px 12px; border-radius:20px; border:1px solid rgba(229,9,20,0.3); color:#e50914; letter-spacing:1px;'>🔴 LIVE</span></div>", unsafe_allow_html=True)
+                    render_movie_cards(tn, ty, tr, ti, td)
+                    
+            with tab2:
+                if telugu:
+                    tn, ty, tr, ti, td = extract_data(telugu, len(trending))
+                    st.markdown("<div class='section-title'>🎬 Top Telugu Blockbusters</div>", unsafe_allow_html=True)
+                    render_movie_cards(tn, ty, tr, ti, td)
 
-            if hindi:
-                tn, ty, tr, ti, td = extract_data(hindi, len(trending) + len(telugu))
-                st.markdown("<div class='section-title'>🌟 Latest Hindi Hits</div>", unsafe_allow_html=True)
-                render_movie_cards(tn, ty, tr, ti, td)
+            with tab3:
+                if hindi:
+                    tn, ty, tr, ti, td = extract_data(hindi, len(trending) + len(telugu))
+                    st.markdown("<div class='section-title'>🌟 Latest Hindi Hits</div>", unsafe_allow_html=True)
+                    render_movie_cards(tn, ty, tr, ti, td)
         else:
             st.info("Could not load movies. Please check your internet connection.")
 

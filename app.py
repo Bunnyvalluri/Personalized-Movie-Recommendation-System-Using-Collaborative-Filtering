@@ -109,15 +109,21 @@ def fetch_trending():
 
 @st.cache_data(ttl=TRENDING_TTL, show_spinner=False)
 def fetch_telugu_movies():
-    """Fetches the top 10 popular Telugu movies. Cached for 30 minutes."""
-    data = tmdb_get("discover/movie?with_original_language=te&sort_by=popularity.desc")
-    return data.get('results', [])[:10] if data else []
+    """Fetches 2 full pages of completed/released Telugu movies."""
+    import datetime
+    today = datetime.date.today().isoformat()
+    d1 = tmdb_get(f"discover/movie?with_original_language=te&sort_by=popularity.desc&primary_release_date.lte={today}&page=1")
+    d2 = tmdb_get(f"discover/movie?with_original_language=te&sort_by=popularity.desc&primary_release_date.lte={today}&page=2")
+    return (d1.get('results', []) + d2.get('results', []))
 
 @st.cache_data(ttl=TRENDING_TTL, show_spinner=False)
 def fetch_hindi_movies():
-    """Fetches the top 10 popular Hindi movies. Cached for 30 minutes."""
-    data = tmdb_get("discover/movie?with_original_language=hi&sort_by=popularity.desc")
-    return data.get('results', [])[:10] if data else []
+    """Fetches 2 full pages of completed/released Hindi movies."""
+    import datetime
+    today = datetime.date.today().isoformat()
+    d1 = tmdb_get(f"discover/movie?with_original_language=hi&sort_by=popularity.desc&primary_release_date.lte={today}&page=1")
+    d2 = tmdb_get(f"discover/movie?with_original_language=hi&sort_by=popularity.desc&primary_release_date.lte={today}&page=2")
+    return (d1.get('results', []) + d2.get('results', []))
 
 
 
@@ -987,7 +993,7 @@ else:
             all_ids = [str(m['id']) for m in all_movies]
             
             # Fetch all details in parallel extremely fast
-            with concurrent.futures.ThreadPoolExecutor(max_workers=30) as executor:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=40) as executor:
                 all_details = list(executor.map(fetch_movie_details, all_ids))
             
             # Split them back up safely

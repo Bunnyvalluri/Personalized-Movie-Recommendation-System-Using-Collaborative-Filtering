@@ -9,15 +9,10 @@ import os
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
-# Configure requests session with large pool for high concurrency
+# Configure requests session with minimal retries to fail fast
 session = requests.Session()
-adapter = HTTPAdapter(
-    pool_connections=50, 
-    pool_maxsize=50, 
-    max_retries=Retry(total=3, backoff_factor=0.2, status_forcelist=[429, 500, 502, 503, 504])
-)
-session.mount('https://', adapter)
-session.mount('http://', adapter)
+retries = Retry(total=1, backoff_factor=0.1)
+session.mount('https://', HTTPAdapter(max_retries=retries))
 
 # ─── SPEED: cache all TMDB calls so repeat visits are instant ────────────────
 # fetch_movie_details is cached per movie_id for 1 hour
@@ -39,15 +34,13 @@ HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/
 def tmdb_get(path):
     """Fetch a TMDB API path, intelligently routing via direct or proxy."""
     from urllib.parse import quote
-    # Use ? if path has no query string yet, else & to append
-    sep = '&' if '?' in path else '?'
-    mirror = f"https://api.tmdb.org/3/{path}{sep}api_key={TMDB_KEY}"
-    direct = f"https://api.themoviedb.org/3/{path}{sep}api_key={TMDB_KEY}"
+    mirror = f"https://api.tmdb.org/3/{path}&api_key={TMDB_KEY}"
+    direct = f"https://api.themoviedb.org/3/{path}&api_key={TMDB_KEY}"
     proxy = f"https://api.codetabs.com/v1/proxy?quest={quote(direct, safe='')}"
 
     # 1. Try Mirror first (bypasses ISP blocks and connection throttling)
     try:
-        r = session.get(mirror, headers=HEADERS, timeout=7.5)
+        r = session.get(mirror, headers=HEADERS, timeout=3.5)
         if r.status_code == 200:
             return r.json()
     except Exception:
@@ -55,7 +48,7 @@ def tmdb_get(path):
 
     # 2. Try Direct
     try:
-        r = session.get(direct, headers=HEADERS, timeout=7.5)
+        r = session.get(direct, headers=HEADERS, timeout=3.5)
         if r.status_code == 200:
             return r.json()
     except Exception:
@@ -63,7 +56,7 @@ def tmdb_get(path):
 
     # 3. Fallback to Proxy
     try:
-        r = session.get(proxy, headers=HEADERS, timeout=10)
+        r = session.get(proxy, headers=HEADERS, timeout=6)
         if r.status_code == 200:
             data = r.json()
             if data and not data.get('error'):
@@ -109,42 +102,48 @@ def fetch_movie_details(movie_id):
 
 
 @st.cache_data(ttl=TRENDING_TTL, show_spinner=False)
-def get_trending():
+def fetch_trending():
     """Fetches the top 10 trending movies of the week. Cached for 30 minutes."""
-    data = tmdb_get("trending/movie/week")
+    data = tmdb_get("trending/movie/week?")
     return data.get('results', [])[:10] if data else []
 
 @st.cache_data(ttl=TRENDING_TTL, show_spinner=False)
-def get_telugu_movies():
-    """Fetches a mix of current popular Telugu hits and all-time classics."""
-    pop = tmdb_get("discover/movie?with_original_language=te&sort_by=popularity.desc")
-    top = tmdb_get("discover/movie?with_original_language=te&sort_by=vote_count.desc")
-    pop_list = pop.get('results', [])[:10] if pop else []
-    top_list = top.get('results', [])[:5] if top else []
-    
-    combined = pop_list.copy()
-    seen = {m['id'] for m in combined}
-    for m in top_list:
-        if m['id'] not in seen:
-            combined.append(m)
-            seen.add(m['id'])
-    return combined
+def fetch_telugu_movies():
+    """Fetches a rich mix of Telugu movies in parallel: popular, top-rated, new & classics."""
+    urls = [
+        "discover/movie?with_original_language=te&sort_by=popularity.desc&page=1",
+        "discover/movie?with_original_language=te&sort_by=vote_average.desc&vote_count.gte=500",
+        "discover/movie?with_original_language=te&sort_by=release_date.desc&primary_release_date.gte=2024-01-01&vote_count.gte=20",
+        "discover/movie?with_original_language=te&sort_by=vote_count.desc",
+    ]
+    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as ex:
+        results = list(ex.map(tmdb_get, urls))
+    combined, seen = [], set()
+    for data in results:
+        for m in (data.get('results', [])[:6] if data else []):
+            if m['id'] not in seen:
+                combined.append(m)
+                seen.add(m['id'])
+    return combined[:20]
 
 @st.cache_data(ttl=TRENDING_TTL, show_spinner=False)
-def get_hindi_movies():
-    """Fetches a mix of current popular Hindi hits and all-time classics."""
-    pop = tmdb_get("discover/movie?with_original_language=hi&sort_by=popularity.desc")
-    top = tmdb_get("discover/movie?with_original_language=hi&sort_by=vote_count.desc")
-    pop_list = pop.get('results', [])[:10] if pop else []
-    top_list = top.get('results', [])[:5] if top else []
-    
-    combined = pop_list.copy()
-    seen = {m['id'] for m in combined}
-    for m in top_list:
-        if m['id'] not in seen:
-            combined.append(m)
-            seen.add(m['id'])
-    return combined
+def fetch_hindi_movies():
+    """Fetches a rich mix of Hindi movies in parallel: popular, top-rated, new & classics."""
+    urls = [
+        "discover/movie?with_original_language=hi&sort_by=popularity.desc&page=1",
+        "discover/movie?with_original_language=hi&sort_by=vote_average.desc&vote_count.gte=500",
+        "discover/movie?with_original_language=hi&sort_by=release_date.desc&primary_release_date.gte=2024-01-01&vote_count.gte=20",
+        "discover/movie?with_original_language=hi&sort_by=vote_count.desc",
+    ]
+    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as ex:
+        results = list(ex.map(tmdb_get, urls))
+    combined, seen = [], set()
+    for data in results:
+        for m in (data.get('results', [])[:6] if data else []):
+            if m['id'] not in seen:
+                combined.append(m)
+                seen.add(m['id'])
+    return combined[:20]
 
 
 
@@ -335,7 +334,7 @@ body {{
             <button class="p-retry" onclick="retryAll()">&#8617; Try all servers again</button>
         </div>
         <iframe id="pf" src="about:blank"
-            sandbox="allow-scripts allow-same-origin allow-forms allow-presentation"
+            sandbox="allow-scripts allow-same-origin allow-presentation"
             allowfullscreen allow="autoplay; encrypted-media; fullscreen; picture-in-picture; web-share"
             onload="onFL()"></iframe>
         <button class="fs-btn" onclick="goFS()" title="Fullscreen (F)">
@@ -345,7 +344,7 @@ body {{
     </div>
     <div class="p-tips">
         <span class="p-tip">&#128161; <strong>Blank screen?</strong> Switch servers above</span>
-        <span class="p-tip">&#128683; <strong>Pop-ups blocked</strong> automatically</span>
+        <span class="p-tip">&#128721; <strong>Ad-blocker?</strong> Try disabling for this page</span>
         <span class="p-tip"><kbd>F</kbd> Fullscreen &nbsp; <kbd>Esc</kbd> Exit</span>
     </div>
 </div>
@@ -353,33 +352,16 @@ body {{
 <script>
 var mid={movie_id_safe}, mtitle={movie_title_safe};
 var srv={{
-    s1:'https://vidsrc.cc/v2/embed/movie/'+mid,
-    s2:'https://embed.su/embed/movie/'+mid,
-    s3:'https://vidlink.pro/movie/'+mid,
-    s4:'https://vidsrc.rip/embed/movie/'+mid,
-    s5:'https://www.2embed.cc/embed/'+mid,
-    s6:'https://moviesapi.club/movie/'+mid
+    s1:'https://vidlink.pro/movie/'+mid,
+    s2:'https://vidsrc.cc/v2/embed/movie/'+mid,
+    s3:'https://moviesapi.club/movie/'+mid,
+    s4:'https://www.2embed.cc/embed/'+mid,
+    s5:'https://vidsrc.rip/embed/movie/'+mid,
+    s6:'https://embed.su/embed/movie/'+mid
 }};
-var srvN={{s1:'VidSrc CC',s2:'Embed.su',s3:'VidLink',s4:'VidSrc RIP',s5:'2Embed',s6:'MoviesAPI'}};
+var srvN={{s1:'VidLink',s2:'VidSrc CC',s3:'MoviesAPI',s4:'2Embed',s5:'VidSrc RIP',s6:'Embed.su'}};
 var ORD=['s1','s2','s3','s4','s5','s6'];
 var timer=null, realLoad=false, curKey=null, autoCycle=true;
-
-// ── AD / POPUP BLOCKER ────────────────────────────────────────────────────
-// Block all window.open popup attempts from streaming iframes
-window.open = function() {{ return null; }};
-// Block top-level navigation attempts (the most aggressive ad technique)
-window.addEventListener('beforeunload', function(e) {{
-    e.preventDefault(); e.stopImmediatePropagation(); return false;
-}}, true);
-// Periodically destroy any rogue ad iframes injected into the page
-setInterval(function() {{
-    var frames = document.querySelectorAll('iframe:not(#pf)');
-    frames.forEach(function(f) {{ f.remove(); }});
-    // Also kill any overlay divs placed on top of the player
-    var overlays = document.querySelectorAll('div[style*="position:fixed"], div[style*="position: fixed"]');
-    overlays.forEach(function(o) {{ if (o.id !== 'pl' && o.id !== 'pu') o.remove(); }});
-}}, 800);
-// ──────────────────────────────────────────────────────────────────────────
 var stEl=document.getElementById('st');
 var plEl=document.getElementById('pl');
 var pltEl=document.getElementById('plt');
@@ -960,8 +942,10 @@ def render_movie_cards(titles, years, ratings, ids, details_list):
         genres_raw   = d.get("genres", "")
         poster_url   = escape(d.get("poster", ""))
         from urllib.parse import quote as _q
-        # Use the internal player route for maximum security and latest server fixes
-        watch_url = f"/?watch={_q(movie_id)}&title={_q(titles[i])}&from={_q(selected_movie)}"
+        # GitHub Pages hosts the standalone player — serves HTML with correct content-type.
+        # Streamlit Cloud cannot serve .html files as HTML (only text/plain).
+        _gh_pages_base = "https://bunnyvalluri.github.io/Personalized-Movie-Recommendation-System-Using-Collaborative-Filtering"
+        watch_url = f"{_gh_pages_base}/player.html?id={_q(movie_id)}&title={_q(titles[i])}&from={_q(selected_movie)}"
         trailer_html = (
             f'<a href="{escape(d["trailer"])}" target="_blank" class="trailer-btn">🎬 Trailer</a>'
             if d.get("trailer") else ''
@@ -1018,18 +1002,22 @@ if show_recs or ("recs" in st.query_params):
         </div>
         """, unsafe_allow_html=True)
 else:
-    # On load, show curated categories (cached after first load – instant on refresh)
-    with st.spinner('⚡ Fetching curated movies for iBOMMA RAHUL…'):
-        trending = get_trending()
-        telugu = get_telugu_movies()
-        hindi = get_hindi_movies()
-        
+    # On load, show curated categories — all 3 category fetches fire in parallel
+    with st.spinner('⚡ Loading iBOMMA RAHUL…'):
+        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as ex:
+            f_trending = ex.submit(fetch_trending)
+            f_telugu   = ex.submit(fetch_telugu_movies)
+            f_hindi    = ex.submit(fetch_hindi_movies)
+            trending = f_trending.result()
+            telugu   = f_telugu.result()
+            hindi    = f_hindi.result()
+
         all_movies = trending + telugu + hindi
         if all_movies:
             all_ids = [str(m['id']) for m in all_movies]
-            
-            # Fetch all details in parallel extremely fast
-            with concurrent.futures.ThreadPoolExecutor(max_workers=30) as executor:
+
+            # Fetch all poster/trailer details in parallel
+            with concurrent.futures.ThreadPoolExecutor(max_workers=40) as executor:
                 all_details = list(executor.map(fetch_movie_details, all_ids))
             
             # Split them back up safely
@@ -1042,31 +1030,37 @@ else:
                 details = all_details[start_idx:end_idx]
                 return names, years, ratings, ids, details
             
-            tab1, tab2, tab3 = st.tabs(["Hollywood Premieres", "Telugu Blockbusters", "Hindi Hits"])
-            
-            with tab1:
-                if trending:
-                    tn, ty, tr, ti, td = extract_data(trending, 0)
-                    st.markdown("<div class='section-title'>Hollywood Premieres <span style='font-size:0.8rem; vertical-align:middle; margin-left:10px; background:rgba(229,9,20,0.1); padding:4px 12px; border-radius:20px; border:1px solid rgba(229,9,20,0.3); color:#e50914; letter-spacing:1px;'>🔴 LIVE</span></div>", unsafe_allow_html=True)
-                    render_movie_cards(tn, ty, tr, ti, td)
-                    
-            with tab2:
-                if telugu:
-                    tn, ty, tr, ti, td = extract_data(telugu, len(trending))
-                    st.markdown("<div class='section-title'>Telugu Blockbusters</div>", unsafe_allow_html=True)
-                    render_movie_cards(tn, ty, tr, ti, td)
+            if trending:
+                tn, ty, tr, ti, td = extract_data(trending, 0)
+                st.markdown("<div class='section-title'>🔥 Trending This Week <span style='font-size:0.8rem; vertical-align:middle; margin-left:10px; background:rgba(229,9,20,0.1); padding:4px 12px; border-radius:20px; border:1px solid rgba(229,9,20,0.3); color:#e50914; letter-spacing:1px;'>🔴 LIVE</span></div>", unsafe_allow_html=True)
+                render_movie_cards(tn, ty, tr, ti, td)
+                
+            if telugu:
+                tn, ty, tr, ti, td = extract_data(telugu, len(trending))
+                st.markdown("""
+                <div class='section-title'>🎬 Telugu Cinema
+                  <span style='font-size:0.65rem; vertical-align:middle; margin-left:10px;
+                    background:rgba(255,165,0,0.1); padding:4px 12px; border-radius:20px;
+                    border:1px solid rgba(255,165,0,0.35); color:#ffa500; letter-spacing:1px;'>
+                    🔥 Popular &nbsp;⭐ Top Rated &nbsp;🆕 New &nbsp;🏆 Classics
+                  </span>
+                </div>""", unsafe_allow_html=True)
+                render_movie_cards(tn, ty, tr, ti, td)
 
-            with tab3:
-                if hindi:
-                    tn, ty, tr, ti, td = extract_data(hindi, len(trending) + len(telugu))
-                    st.markdown("<div class='section-title'>Hindi Hits</div>", unsafe_allow_html=True)
-                    render_movie_cards(tn, ty, tr, ti, td)
+            if hindi:
+                tn, ty, tr, ti, td = extract_data(hindi, len(trending) + len(telugu))
+                st.markdown("""
+                <div class='section-title'>🌟 Hindi Cinema
+                  <span style='font-size:0.65rem; vertical-align:middle; margin-left:10px;
+                    background:rgba(0,180,255,0.1); padding:4px 12px; border-radius:20px;
+                    border:1px solid rgba(0,180,255,0.35); color:#00b4ff; letter-spacing:1px;'>
+                    🔥 Popular &nbsp;⭐ Top Rated &nbsp;🆕 New &nbsp;🏆 Classics
+                  </span>
+                </div>""", unsafe_allow_html=True)
+                render_movie_cards(tn, ty, tr, ti, td)
         else:
-            st.error(f"DEBUG INFO: Could not load movies from TMDB API.\\n"
-                     f"- Trending fetched: {len(trending)} movies\\n"
-                     f"- Telugu fetched: {len(telugu)} movies\\n"
-                     f"- Hindi fetched: {len(hindi)} movies\\n"
-                     f"Please check if your internet connection is blocking api.tmdb.org.")
+            st.info("Could not load movies. Please check your internet connection.")
+
 st.markdown("""
 <div style="margin-top: 100px; padding: 80px 40px; background: rgba(0,0,0,0.5); border-top: 1px solid rgba(255,255,255,0.05); text-align: center;">
     <div style="display: flex; justify-content: center; gap: 40px; margin-bottom: 40px;">

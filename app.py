@@ -838,7 +838,7 @@ def load_data():
     # 1. Load dictionary from JSON safely (mitigates Pickle vulnerabilities)
     with open('artifacts/movie_dict.json', 'r') as f:
         movies_dict = json.load(f)
-    movies = pd.DataFrame(movies_dict)
+    movies = pd.DataFrame(movies_dict).reset_index(drop=True)
 
     # 2. Load or compute similarity matrix safely
     if not os.path.exists('artifacts/similarity.npy'):

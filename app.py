@@ -353,14 +353,14 @@ body {{
 <script>
 var mid={movie_id_safe}, mtitle={movie_title_safe};
 var srv={{
-    s1:'https://vidsrc.cc/v2/embed/movie/'+mid,
-    s2:'https://embed.su/embed/movie/'+mid,
-    s3:'https://vidlink.pro/movie/'+mid,
-    s4:'https://vidsrc.rip/embed/movie/'+mid,
-    s5:'https://www.2embed.cc/embed/'+mid,
-    s6:'https://moviesapi.club/movie/'+mid
+    s1:'https://www.2embed.cc/embed/'+mid,
+    s2:'https://vidsrc.rip/embed/movie/'+mid,
+    s3:'https://vidsrc.me/embed/movie?tmdb='+mid,
+    s4:'https://vidsrc.cc/v2/embed/movie/'+mid,
+    s5:'https://moviesapi.club/movie/'+mid,
+    s6:'https://vidlink.pro/movie/'+mid
 }};
-var srvN={{s1:'VidSrc CC',s2:'Embed.su',s3:'VidLink',s4:'VidSrc RIP',s5:'2Embed',s6:'MoviesAPI'}};
+var srvN={{s1:'2Embed',s2:'VidSrc RIP',s3:'VidSrc ME',s4:'VidSrc CC',s5:'MoviesAPI',s6:'VidLink'}};
 var ORD=['s1','s2','s3','s4','s5','s6'];
 var timer=null, realLoad=false, curKey=null, autoCycle=false;
 

@@ -111,15 +111,15 @@ def fetch_trending():
 
 @st.cache_data(ttl=TRENDING_TTL, show_spinner=False)
 def fetch_telugu_movies():
-    """Fetches the top 10 popular Telugu movies. Cached for 30 minutes."""
-    data = tmdb_get("discover/movie?with_original_language=te&sort_by=popularity.desc")
-    return data.get('results', [])[:10] if data else []
+    """Fetches the top 15 all-time great Telugu movies sorted by vote count."""
+    data = tmdb_get("discover/movie?with_original_language=te&sort_by=vote_count.desc")
+    return data.get('results', [])[:15] if data else []
 
 @st.cache_data(ttl=TRENDING_TTL, show_spinner=False)
 def fetch_hindi_movies():
-    """Fetches the top 10 popular Hindi movies. Cached for 30 minutes."""
-    data = tmdb_get("discover/movie?with_original_language=hi&sort_by=popularity.desc")
-    return data.get('results', [])[:10] if data else []
+    """Fetches the top 15 all-time great Hindi movies sorted by vote count."""
+    data = tmdb_get("discover/movie?with_original_language=hi&sort_by=vote_count.desc")
+    return data.get('results', [])[:15] if data else []
 
 
 

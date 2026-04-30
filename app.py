@@ -232,9 +232,9 @@ body {{
 .p-mname span {{ color:#e50914; }}
 .p-srv {{ display:flex; align-items:center; gap:8px; padding:12px 28px; background:rgba(255,255,255,0.02); border-bottom:1px solid rgba(255,255,255,0.06); flex-wrap:wrap; }}
 .p-srv-label {{ color:#555; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:1px; margin-right:4px; }}
-.srv-btn {{ padding:6px 16px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.05); color:#bbb; cursor:pointer; font-size:13px; font-weight:600; transition:all 0.25s; font-family:'Outfit',sans-serif; }}
-.srv-btn:hover {{ background:rgba(229,9,20,0.15); border-color:rgba(229,9,20,0.5); color:#fff; }}
-.srv-btn.active {{ background:linear-gradient(135deg,#e50914,#a30008); border-color:#e50914; color:#fff; box-shadow:0 4px 16px rgba(229,9,20,0.45); }}
+.srv-btn { padding:8px 20px; border-radius:20px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.05); color:#bbb; cursor:pointer; font-size:13px; font-weight:700; transition:all 0.3s cubic-bezier(0.4, 0, 0.2, 1); font-family:'Outfit',sans-serif; letter-spacing:0.5px; }
+.srv-btn:hover { background:rgba(229,9,20,0.15); border-color:rgba(229,9,20,0.5); color:#fff; transform:translateY(-1px); }
+.srv-btn.active { background:linear-gradient(135deg,#e50914,#900); border-color:#e50914; color:#fff; box-shadow:0 4px 15px rgba(229,9,20,0.4); transform:translateY(-1px); }
 .srv-status {{ margin-left:auto; font-size:11px; font-weight:600; padding:4px 12px; border-radius:20px; }}
 .srv-status.trying {{ color:#f0a000; background:rgba(240,160,0,0.1); border:1px solid rgba(240,160,0,0.3); }}
 .srv-status.live {{ color:#22c55e; background:rgba(34,197,94,0.1); border:1px solid rgba(34,197,94,0.3); }}
@@ -282,12 +282,12 @@ body {{
 </div>
 <div class="p-srv">
     <span class="p-srv-label">Server:</span>
-    <button class="srv-btn active" data-key="s1" onclick="loadSrc('s1',this)">&#9889; Server 1</button>
-    <button class="srv-btn" data-key="s2" onclick="loadSrc('s2',this)">&#9889; Server 2</button>
-    <button class="srv-btn" data-key="s3" onclick="loadSrc('s3',this)">&#9889; Server 3</button>
-    <button class="srv-btn" data-key="s4" onclick="loadSrc('s4',this)">&#9889; Server 4</button>
-    <button class="srv-btn" data-key="s5" onclick="loadSrc('s5',this)">&#9889; Server 5</button>
-    <button class="srv-btn" data-key="s6" onclick="loadSrc('s6',this)">&#9889; Server 6</button>
+    <button class="srv-btn active" data-key="s1" onclick="loadSrc('s1',this)">VidLink</button>
+    <button class="srv-btn" data-key="s2" onclick="loadSrc('s2',this)">VidSrc CC</button>
+    <button class="srv-btn" data-key="s3" onclick="loadSrc('s3',this)">MoviesAPI</button>
+    <button class="srv-btn" data-key="s4" onclick="loadSrc('s4',this)">2Embed</button>
+    <button class="srv-btn" data-key="s5" onclick="loadSrc('s5',this)">VidSrc RIP</button>
+    <button class="srv-btn" data-key="s6" onclick="loadSrc('s6',this)">Embed.su</button>
     <span class="srv-status trying" id="st">Connecting...</span>
 </div>
 <div class="p-cinema">
@@ -308,7 +308,7 @@ body {{
             <button class="p-retry" onclick="retryAll()">&#8617; Try all servers again</button>
         </div>
         <iframe id="pf" src="about:blank"
-            sandbox="allow-scripts allow-same-origin allow-presentation"
+            sandbox="allow-scripts allow-same-origin allow-presentation allow-forms"
             allowfullscreen allow="autoplay; encrypted-media; fullscreen; picture-in-picture; web-share"
             onload="onFL()"></iframe>
         <button class="fs-btn" onclick="goFS()" title="Fullscreen (F)">

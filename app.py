@@ -21,7 +21,13 @@ TMDB_CACHE_TTL   = 3600   # 1 hour for movie details
 TRENDING_TTL     = 1800   # 30 minutes for trending list
 
 
-TMDB_KEY = "8265bd1679663a7ea12ac168da84d2e8"
+# ─── SECURITY: Load API key securely ─────────────────────────────────────────
+try:
+    TMDB_KEY = st.secrets["TMDB_KEY"]
+except (KeyError, FileNotFoundError):
+    # Fallback to env var or hardcoded for demo purposes only
+    TMDB_KEY = os.environ.get("TMDB_KEY", "8265bd1679663a7ea12ac168da84d2e8")
+
 HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
 
 
@@ -146,9 +152,15 @@ st.set_page_config(layout="wide", page_title="iBOMMA Rahul - Watch")
 
 # ─── INTERNAL MOVIE PLAYER ROUTE ─────────────────────────────────────────────
 if "watch" in st.query_params:
-    movie_id    = st.query_params.get("watch", "")
-    movie_title = st.query_params.get("title", "Movie")
-    from_movie  = st.query_params.get("from", "")
+    import json, html
+    movie_id_raw    = st.query_params.get("watch", "")
+    movie_title_raw = st.query_params.get("title", "Movie")
+    from_movie      = st.query_params.get("from", "")
+
+    # Security: HTML escape and JSON serialize to prevent XSS
+    movie_title_esc  = html.escape(movie_title_raw)
+    movie_id_safe    = json.dumps(movie_id_raw)
+    movie_title_safe = json.dumps(movie_title_raw)
 
     from urllib.parse import quote as _q
     # Back URL restores the recommendations page
@@ -171,7 +183,8 @@ if "watch" in st.query_params:
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>iBOMMA RAHUL – {{movie_title}}</title>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' https:; frame-src https:;">
+<title>iBOMMA RAHUL – {movie_title_esc}</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800;900&display=swap');
 *, *::before, *::after {{ box-sizing: border-box; margin: 0; padding: 0; }}
@@ -245,7 +258,7 @@ body {{
 </nav>
 <div class="p-strip">
     <div class="p-icon">&#9654;</div>
-    <div class="p-mname">Now Playing: <span id="mtitle">{movie_title}</span></div>
+    <div class="p-mname">Now Playing: <span id="mtitle">{movie_title_esc}</span></div>
 </div>
 <div class="p-srv">
     <span class="p-srv-label">Server:</span>
@@ -275,6 +288,7 @@ body {{
             <button class="p-retry" onclick="retryAll()">&#8617; Try all servers again</button>
         </div>
         <iframe id="pf" src="about:blank"
+            sandbox="allow-scripts allow-same-origin allow-presentation"
             allowfullscreen allow="autoplay; encrypted-media; fullscreen; picture-in-picture; web-share"
             onload="onFL()"></iframe>
         <button class="fs-btn" onclick="goFS()" title="Fullscreen (F)">
@@ -290,7 +304,7 @@ body {{
 </div>
 <div class="p-footer">iBOMMA RAHUL &nbsp;&bull;&nbsp; Premium Streaming &nbsp;&bull;&nbsp; 6 Servers</div>
 <script>
-var mid='{movie_id}', mtitle='{movie_title}';
+var mid={movie_id_safe}, mtitle={movie_title_safe};
 var srv={{
     s1:'https://vidlink.pro/movie/'+mid,
     s2:'https://vidsrc.cc/v2/embed/movie/'+mid,
@@ -447,15 +461,14 @@ footer {visibility: hidden;}
 .nav-logo {
     font-size: 2.2rem;
     font-weight: 900;
-    background: linear-gradient(90deg, #ff4d5e, #e50914, #ffb3b9, #e50914);
+    background: linear-gradient(135deg, #ffffff 0%, #e0e0e0 50%, #ff4d5e 100%);
     background-size: 200% auto;
-    animation: shimmer 4s linear infinite;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
     text-transform: uppercase;
-    letter-spacing: 7px;
-    filter: drop-shadow(0 0 20px rgba(229,9,20,0.6));
+    letter-spacing: 5px;
+    filter: drop-shadow(0 2px 10px rgba(255,255,255,0.1));
 }
 .nav-right {
     display: flex;
@@ -485,57 +498,87 @@ footer {visibility: hidden;}
 /* ── HERO REMOVED – replaced by navbar ── */
 @keyframes shimmer2 { to { background-position: 200% center; } }
 
-/* ── SEARCH AREA ── */
+/* ── CUSTOM SCROLLBAR ── */
+::-webkit-scrollbar { width: 10px; }
+::-webkit-scrollbar-track { background: #0a0010; }
+::-webkit-scrollbar-thumb { background: rgba(229,9,20,0.5); border-radius: 10px; border: 2px solid #0a0010; }
+::-webkit-scrollbar-thumb:hover { background: rgba(229,9,20,0.8); }
+
+/* ── CINEMATIC AMBIENT GLOW ── */
+.stApp::after {
+    content: "";
+    position: fixed;
+    top: -20vh;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80vw;
+    height: 60vh;
+    background: radial-gradient(ellipse at center, rgba(229,9,20,0.12) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* ── PREMIUM SEARCH BAR ── */
+.stSelectbox {
+    max-width: 800px;
+    margin: 0 auto;
+}
 .stSelectbox label {
-    color: #aaa !important;
-    font-size: 0.85rem;
+    color: #e0e0e0 !important;
+    font-size: 1rem !important;
+    font-weight: 600 !important;
     text-align: center;
     width: 100%;
     text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 2px;
+    margin-bottom: 12px;
 }
 div[data-baseweb="select"] > div {
-    background-color: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(14,14,20,0.8);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 16px;
+    padding: 6px 16px;
     color: white;
-    border-radius: 10px;
-    transition: all 0.3s;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.5), 0 8px 30px rgba(0,0,0,0.4);
+    transition: all 0.3s ease;
 }
-div[data-baseweb="select"] > div:hover {
-    border-color: #e50914;
-    box-shadow: 0 0 20px rgba(229,9,20,0.15);
+div[data-baseweb="select"] > div:focus-within, div[data-baseweb="select"] > div:hover {
+    border-color: rgba(229,9,20,0.8);
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.5), 0 0 25px rgba(229,9,20,0.25);
+    background: rgba(20,20,28,0.95);
 }
 
 /* ── RECOMMEND BUTTON ── */
 .stButton { display: flex; justify-content: center; margin: 40px 0; }
 .stButton>button {
-    background: linear-gradient(90deg, #e50914, #ff2233, #8a0006) !important;
-    background-size: 200% auto !important;
+    background: linear-gradient(135deg, #e50914 0%, #a30008 100%) !important;
     color: white !important;
-    border: 1px solid rgba(255,255,255,0.1) !important;
+    border: 1px solid rgba(255,255,255,0.15) !important;
     padding: 16px 60px !important;
     border-radius: 60px !important;
     font-weight: 800 !important;
     font-size: 1.2rem !important;
     letter-spacing: 2px !important;
     text-transform: uppercase !important;
-    box-shadow: 0 10px 30px rgba(229,9,20,0.5) !important;
-    transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
-    animation: shimmer 3s linear infinite !important;
+    box-shadow: 0 8px 25px rgba(229,9,20,0.4), inset 0 1px 2px rgba(255,255,255,0.3) !important;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
 }
 .stButton>button:hover {
-    transform: scale(1.08) translateY(-5px) !important;
-    box-shadow: 0 20px 45px rgba(229,9,20,0.8) !important;
+    transform: scale(1.05) translateY(-3px) !important;
+    box-shadow: 0 15px 35px rgba(229,9,20,0.6), inset 0 1px 2px rgba(255,255,255,0.4) !important;
+    background: linear-gradient(135deg, #ff1a28 0%, #e50914 100%) !important;
     letter-spacing: 3px !important;
 }
 
 /* ── MOVIE ROW ── */
 .movie-row {
-    display: flex;
-    gap: 20px;
-    padding: 10px 32px 60px;
-    flex-wrap: wrap;
-    justify-content: center;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 28px;
+    padding: 10px 40px 60px;
+    max-width: 1400px;
+    margin: 0 auto;
 }
 
 /* ── CARD ANIMATION ── */
@@ -546,21 +589,31 @@ div[data-baseweb="select"] > div:hover {
 
 /* ── MOVIE CARD ── */
 .movie-card {
-    flex: 0 0 auto;
-    width: 260px;
-    background: rgba(14,14,20,0.92);
-    backdrop-filter: blur(30px);
+    background: rgba(14,14,20,0.7);
+    backdrop-filter: blur(30px) saturate(150%);
+    -webkit-backdrop-filter: blur(30px) saturate(150%);
     border: 1px solid rgba(255,255,255,0.08);
+    border-top: 1px solid rgba(255,255,255,0.2);
     border-radius: 24px;
     overflow: hidden;
     transition: all 0.5s cubic-bezier(0.2, 1, 0.3, 1);
-    box-shadow: 0 12px 50px rgba(0,0,0,0.8);
+    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.15), 0 12px 40px rgba(0,0,0,0.6);
     cursor: pointer;
     opacity: 0;
     animation: fadeInUp 0.8s cubic-bezier(0.2, 1, 0.3, 1) forwards;
     display: flex;
     flex-direction: column;
     position: relative;
+    width: 100%;
+}
+.movie-card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: url("https://www.transparenttextures.com/patterns/stardust.png");
+    opacity: 0.2;
+    pointer-events: none;
+    z-index: 1;
 }
 .movie-card:nth-child(1) { animation-delay: 0.05s; }
 .movie-card:nth-child(2) { animation-delay: 0.12s; }
@@ -739,6 +792,17 @@ div[data-baseweb="select"] > div:hover {
     background: linear-gradient(90deg, transparent, rgba(229,9,20,0.5), transparent);
     max-width: 200px;
 }
+
+@media (max-width: 768px) {
+    .main-nav { padding: 15px 20px; margin-bottom: 20px; }
+    .nav-tagline { display: none; }
+    .nav-logo { font-size: 1.6rem; letter-spacing: 3px; }
+    .movie-row { padding: 10px 20px 40px; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; }
+    .movie-poster { height: 260px; }
+    .movie-title { font-size: 15px; }
+    .btn-group { flex-direction: column; }
+    .stButton>button { width: 100%; padding: 14px 20px !important; font-size: 1rem !important; }
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -752,10 +816,10 @@ st.markdown("""
 </div>
 
 <div style="text-align: center; padding: 40px 20px 20px;">
-    <h1 style="font-size: 3.5rem; font-weight: 900; letter-spacing: -1px; margin-bottom: 10px; background: linear-gradient(135deg, #fff 0%, #888 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+    <h1 style="font-size: clamp(2.5rem, 5vw, 4.5rem); font-weight: 900; letter-spacing: -1px; margin-bottom: 10px; background: linear-gradient(135deg, #fff 0%, #a0a0a0 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 4px 20px rgba(255,255,255,0.1));">
         Find Your Next Favorite Movie
     </h1>
-    <p style="font-size: 1.1rem; color: #666; max-width: 600px; margin: 0 auto 30px; line-height: 1.6;">
+    <p style="font-size: clamp(1rem, 2vw, 1.15rem); color: #888; max-width: 650px; margin: 0 auto 30px; line-height: 1.7; font-weight: 400;">
         Explore a curated collection of cinematic masterpieces. Powered by advanced collaborative filtering and real-time streaming servers.
     </p>
 </div>
@@ -893,7 +957,13 @@ if show_recs or ("recs" in st.query_params):
         st.markdown("<div class='section-title'>🎯 Top Picks For You</div>", unsafe_allow_html=True)
         render_movie_cards(r_names, r_years, r_ratings, r_ids, r_details)
     else:
-        st.warning("No recommendations found. Try another movie!")
+        st.markdown("""
+        <div style="text-align: center; padding: 60px 20px; background: rgba(14,14,20,0.6); backdrop-filter: blur(10px); border-radius: 24px; border: 1px solid rgba(255,255,255,0.05); max-width: 600px; margin: 40px auto; box-shadow: 0 20px 50px rgba(0,0,0,0.5);">
+            <div style="font-size: 4rem; margin-bottom: 20px; opacity: 0.8; filter: drop-shadow(0 0 20px rgba(255,255,255,0.1));">🍿</div>
+            <h3 style="color: #fff; font-size: 1.5rem; margin-bottom: 10px; font-weight: 800; font-family: 'Outfit', sans-serif;">No recommendations found</h3>
+            <p style="color: #888; font-size: 1rem; line-height: 1.6;">We couldn't find exact matches for this specific title. Try searching for a different movie to discover new favorites.</p>
+        </div>
+        """, unsafe_allow_html=True)
 else:
     # On load, show Trending movies (cached after first load – instant on refresh)
     with st.spinner('⚡ Fetching trending movies…'):

@@ -353,16 +353,16 @@ body {{
 <script>
 var mid={movie_id_safe}, mtitle={movie_title_safe};
 var srv={{
-    s1:'https://www.2embed.cc/embed/'+mid,
-    s2:'https://vidsrc.rip/embed/movie/'+mid,
-    s3:'https://vidsrc.me/embed/movie?tmdb='+mid,
-    s4:'https://vidsrc.cc/v2/embed/movie/'+mid,
-    s5:'https://moviesapi.club/movie/'+mid,
-    s6:'https://vidlink.pro/movie/'+mid
+    s1:'https://vidsrc.cc/v2/embed/movie/'+mid,
+    s2:'https://embed.su/embed/movie/'+mid,
+    s3:'https://vidlink.pro/movie/'+mid,
+    s4:'https://vidsrc.rip/embed/movie/'+mid,
+    s5:'https://www.2embed.cc/embed/'+mid,
+    s6:'https://moviesapi.club/movie/'+mid
 }};
-var srvN={{s1:'2Embed',s2:'VidSrc RIP',s3:'VidSrc ME',s4:'VidSrc CC',s5:'MoviesAPI',s6:'VidLink'}};
+var srvN={{s1:'VidSrc CC',s2:'Embed.su',s3:'VidLink',s4:'VidSrc RIP',s5:'2Embed',s6:'MoviesAPI'}};
 var ORD=['s1','s2','s3','s4','s5','s6'];
-var timer=null, realLoad=false, curKey=null, autoCycle=false;
+var timer=null, realLoad=false, curKey=null, autoCycle=true;
 
 // ── AD / POPUP BLOCKER ────────────────────────────────────────────────────
 // Block all window.open popup attempts from streaming iframes
@@ -397,21 +397,15 @@ function startTimer(k){{
     clearTimeout(timer);
     timer=setTimeout(function(){{
         if(plEl&&!plEl.classList.contains('hidden')){{
-            if(autoCycle){{
-                var ni=ORD.indexOf(k)+1;
-                if(ni<ORD.length){{
-                    var nk=ORD[ni];
-                    activateBtn(nk); showLoad(nk);
-                    document.getElementById('pf').src=srv[nk];
-                    startTimer(nk);
-                }}else{{plEl.classList.add('hidden');showUnavail();}}
-            }} else {{
-                // Stop spinning, let the user decide if they want to switch
-                plEl.classList.add('hidden');
-                setStatus('live','&#127902; Server Loaded');
-            }}
+            var ni=ORD.indexOf(k)+1;
+            if(ni<ORD.length&&autoCycle){{
+                var nk=ORD[ni];
+                activateBtn(nk); showLoad(nk);
+                document.getElementById('pf').src=srv[nk];
+                startTimer(nk);
+            }}else{{plEl.classList.add('hidden');showUnavail();}}
         }}
-    }}, 12000); // Give it 12 full seconds to load
+    }},6000);
 }}
 function showUnavail(){{
     setStatus('dead','All servers failed');
@@ -1048,24 +1042,24 @@ else:
                 details = all_details[start_idx:end_idx]
                 return names, years, ratings, ids, details
             
-            tab1, tab2, tab3 = st.tabs(["Global Trending", "Telugu Cinema", "Hindi Cinema"])
+            tab1, tab2, tab3 = st.tabs(["Hollywood Premieres", "Telugu Blockbusters", "Hindi Hits"])
             
             with tab1:
                 if trending:
                     tn, ty, tr, ti, td = extract_data(trending, 0)
-                    st.markdown("<div class='section-title'>Global Trending Now <span style='font-size:0.8rem; vertical-align:middle; margin-left:10px; background:rgba(229,9,20,0.1); padding:4px 12px; border-radius:20px; border:1px solid rgba(229,9,20,0.3); color:#e50914; letter-spacing:1px;'>🔴 LIVE</span></div>", unsafe_allow_html=True)
+                    st.markdown("<div class='section-title'>Hollywood Premieres <span style='font-size:0.8rem; vertical-align:middle; margin-left:10px; background:rgba(229,9,20,0.1); padding:4px 12px; border-radius:20px; border:1px solid rgba(229,9,20,0.3); color:#e50914; letter-spacing:1px;'>🔴 LIVE</span></div>", unsafe_allow_html=True)
                     render_movie_cards(tn, ty, tr, ti, td)
                     
             with tab2:
                 if telugu:
                     tn, ty, tr, ti, td = extract_data(telugu, len(trending))
-                    st.markdown("<div class='section-title'>Premium Telugu Releases</div>", unsafe_allow_html=True)
+                    st.markdown("<div class='section-title'>Telugu Blockbusters</div>", unsafe_allow_html=True)
                     render_movie_cards(tn, ty, tr, ti, td)
 
             with tab3:
                 if hindi:
                     tn, ty, tr, ti, td = extract_data(hindi, len(trending) + len(telugu))
-                    st.markdown("<div class='section-title'>Trending Hindi Features</div>", unsafe_allow_html=True)
+                    st.markdown("<div class='section-title'>Hindi Hits</div>", unsafe_allow_html=True)
                     render_movie_cards(tn, ty, tr, ti, td)
         else:
             st.error(f"DEBUG INFO: Could not load movies from TMDB API.\\n"

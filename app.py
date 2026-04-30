@@ -31,26 +31,30 @@ except (KeyError, FileNotFoundError):
 HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
 
 
-_TMDB_DIRECT_WORKS = None
-
 def tmdb_get(path):
     """Fetch a TMDB API path, intelligently routing via direct or proxy."""
-    global _TMDB_DIRECT_WORKS
     from urllib.parse import quote
+    mirror = f"https://api.tmdb.org/3/{path}&api_key={TMDB_KEY}"
     direct = f"https://api.themoviedb.org/3/{path}&api_key={TMDB_KEY}"
     proxy = f"https://api.codetabs.com/v1/proxy?quest={quote(direct, safe='')}"
 
-    # 1. Try Direct first (lightning fast). If blocked (e.g. in India), remember the failure.
-    if _TMDB_DIRECT_WORKS is not False:
-        try:
-            r = session.get(direct, headers=HEADERS, timeout=2.5)
-            if r.status_code == 200:
-                _TMDB_DIRECT_WORKS = True
-                return r.json()
-        except Exception:
-            _TMDB_DIRECT_WORKS = False # Mark as blocked for this server session
+    # 1. Try Mirror first (bypasses ISP blocks and connection throttling)
+    try:
+        r = session.get(mirror, headers=HEADERS, timeout=3.5)
+        if r.status_code == 200:
+            return r.json()
+    except Exception:
+        pass
 
-    # 2. Fallback to Proxy
+    # 2. Try Direct
+    try:
+        r = session.get(direct, headers=HEADERS, timeout=3.5)
+        if r.status_code == 200:
+            return r.json()
+    except Exception:
+        pass
+
+    # 3. Fallback to Proxy
     try:
         r = session.get(proxy, headers=HEADERS, timeout=6)
         if r.status_code == 200:

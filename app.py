@@ -310,7 +310,7 @@ body {{
             <button class="p-retry" onclick="retryAll()">&#8617; Try all servers again</button>
         </div>
         <iframe id="pf" src="about:blank"
-            sandbox="allow-scripts allow-same-origin allow-presentation"
+            sandbox="allow-scripts allow-same-origin allow-forms allow-presentation"
             allowfullscreen allow="autoplay; encrypted-media; fullscreen; picture-in-picture; web-share"
             onload="onFL()"></iframe>
         <button class="fs-btn" onclick="goFS()" title="Fullscreen (F)">
@@ -320,7 +320,7 @@ body {{
     </div>
     <div class="p-tips">
         <span class="p-tip">&#128161; <strong>Blank screen?</strong> Switch servers above</span>
-        <span class="p-tip">&#128721; <strong>Ad-blocker?</strong> Try disabling for this page</span>
+        <span class="p-tip">&#128683; <strong>Pop-ups blocked</strong> automatically</span>
         <span class="p-tip"><kbd>F</kbd> Fullscreen &nbsp; <kbd>Esc</kbd> Exit</span>
     </div>
 </div>
@@ -328,16 +328,33 @@ body {{
 <script>
 var mid={movie_id_safe}, mtitle={movie_title_safe};
 var srv={{
-    s1:'https://vidlink.pro/movie/'+mid,
-    s2:'https://vidsrc.cc/v2/embed/movie/'+mid,
-    s3:'https://moviesapi.club/movie/'+mid,
-    s4:'https://www.2embed.cc/embed/'+mid,
-    s5:'https://vidsrc.rip/embed/movie/'+mid,
-    s6:'https://embed.su/embed/movie/'+mid
+    s1:'https://vidsrc.cc/v2/embed/movie/'+mid,
+    s2:'https://embed.su/embed/movie/'+mid,
+    s3:'https://vidlink.pro/movie/'+mid,
+    s4:'https://vidsrc.rip/embed/movie/'+mid,
+    s5:'https://www.2embed.cc/embed/'+mid,
+    s6:'https://moviesapi.club/movie/'+mid
 }};
-var srvN={{s1:'VidLink',s2:'VidSrc CC',s3:'MoviesAPI',s4:'2Embed',s5:'VidSrc RIP',s6:'Embed.su'}};
+var srvN={{s1:'VidSrc CC',s2:'Embed.su',s3:'VidLink',s4:'VidSrc RIP',s5:'2Embed',s6:'MoviesAPI'}};
 var ORD=['s1','s2','s3','s4','s5','s6'];
 var timer=null, realLoad=false, curKey=null, autoCycle=true;
+
+// ── AD / POPUP BLOCKER ────────────────────────────────────────────────────
+// Block all window.open popup attempts from streaming iframes
+window.open = function() {{ return null; }};
+// Block top-level navigation attempts (the most aggressive ad technique)
+window.addEventListener('beforeunload', function(e) {{
+    e.preventDefault(); e.stopImmediatePropagation(); return false;
+}}, true);
+// Periodically destroy any rogue ad iframes injected into the page
+setInterval(function() {{
+    var frames = document.querySelectorAll('iframe:not(#pf)');
+    frames.forEach(function(f) {{ f.remove(); }});
+    // Also kill any overlay divs placed on top of the player
+    var overlays = document.querySelectorAll('div[style*="position:fixed"], div[style*="position: fixed"]');
+    overlays.forEach(function(o) {{ if (o.id !== 'pl' && o.id !== 'pu') o.remove(); }});
+}}, 800);
+// ──────────────────────────────────────────────────────────────────────────
 var stEl=document.getElementById('st');
 var plEl=document.getElementById('pl');
 var pltEl=document.getElementById('plt');

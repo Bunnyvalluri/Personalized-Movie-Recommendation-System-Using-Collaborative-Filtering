@@ -109,13 +109,13 @@ def fetch_movie_details(movie_id):
 
 
 @st.cache_data(ttl=TRENDING_TTL, show_spinner=False)
-def fetch_trending():
+def get_trending():
     """Fetches the top 10 trending movies of the week. Cached for 30 minutes."""
     data = tmdb_get("trending/movie/week")
     return data.get('results', [])[:10] if data else []
 
 @st.cache_data(ttl=TRENDING_TTL, show_spinner=False)
-def fetch_telugu_movies():
+def get_telugu_movies():
     """Fetches a mix of current popular Telugu hits and all-time classics."""
     pop = tmdb_get("discover/movie?with_original_language=te&sort_by=popularity.desc")
     top = tmdb_get("discover/movie?with_original_language=te&sort_by=vote_count.desc")
@@ -131,7 +131,7 @@ def fetch_telugu_movies():
     return combined
 
 @st.cache_data(ttl=TRENDING_TTL, show_spinner=False)
-def fetch_hindi_movies():
+def get_hindi_movies():
     """Fetches a mix of current popular Hindi hits and all-time classics."""
     pop = tmdb_get("discover/movie?with_original_language=hi&sort_by=popularity.desc")
     top = tmdb_get("discover/movie?with_original_language=hi&sort_by=vote_count.desc")
@@ -1020,9 +1020,9 @@ if show_recs or ("recs" in st.query_params):
 else:
     # On load, show curated categories (cached after first load – instant on refresh)
     with st.spinner('⚡ Fetching curated movies for iBOMMA RAHUL…'):
-        trending = fetch_trending()
-        telugu = fetch_telugu_movies()
-        hindi = fetch_hindi_movies()
+        trending = get_trending()
+        telugu = get_telugu_movies()
+        hindi = get_hindi_movies()
         
         all_movies = trending + telugu + hindi
         if all_movies:

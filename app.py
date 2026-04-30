@@ -935,10 +935,8 @@ def render_movie_cards(titles, years, ratings, ids, details_list):
         genres_raw   = d.get("genres", "")
         poster_url   = escape(d.get("poster", ""))
         from urllib.parse import quote as _q
-        # GitHub Pages hosts the standalone player — serves HTML with correct content-type.
-        # Streamlit Cloud cannot serve .html files as HTML (only text/plain).
-        _gh_pages_base = "https://bunnyvalluri.github.io/Personalized-Movie-Recommendation-System-Using-Collaborative-Filtering"
-        watch_url = f"{_gh_pages_base}/player.html?id={_q(movie_id)}&title={_q(titles[i])}&from={_q(selected_movie)}"
+        # Use the internal player route for maximum security and latest server fixes
+        watch_url = f"/?watch={_q(movie_id)}&title={_q(titles[i])}&from={_q(selected_movie)}"
         trailer_html = (
             f'<a href="{escape(d["trailer"])}" target="_blank" class="trailer-btn">🎬 Trailer</a>'
             if d.get("trailer") else ''

@@ -34,8 +34,10 @@ HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/
 def tmdb_get(path):
     """Fetch a TMDB API path, intelligently routing via direct or proxy."""
     from urllib.parse import quote
-    mirror = f"https://api.tmdb.org/3/{path}&api_key={TMDB_KEY}"
-    direct = f"https://api.themoviedb.org/3/{path}&api_key={TMDB_KEY}"
+    # Use ? if path has no query string yet, else & to append
+    sep = '&' if '?' in path else '?'
+    mirror = f"https://api.tmdb.org/3/{path}{sep}api_key={TMDB_KEY}"
+    direct = f"https://api.themoviedb.org/3/{path}{sep}api_key={TMDB_KEY}"
     proxy = f"https://api.codetabs.com/v1/proxy?quest={quote(direct, safe='')}"
 
     # 1. Try Mirror first (bypasses ISP blocks and connection throttling)
@@ -74,7 +76,7 @@ def fetch_movie_details(movie_id):
     Result is cached per movie_id for 1 hour — repeat visits are instant.
     """
     details = {
-        'poster': "https://raw.githubusercontent.com/Bunnyvalluri/Personalized-Movie-Recommendation-System-Using-Collaborative-Filtering/main/assets/no_poster.jpg",
+        'poster': "https://placehold.co/500x750/333/FFFFFF?text=No+Poster",
         'trailer': None,
         'overview': "No plot summary available.",
         'genres': ""
@@ -104,26 +106,20 @@ def fetch_movie_details(movie_id):
 @st.cache_data(ttl=TRENDING_TTL, show_spinner=False)
 def fetch_trending():
     """Fetches the top 10 trending movies of the week. Cached for 30 minutes."""
-    data = tmdb_get("trending/movie/week?")
+    data = tmdb_get("trending/movie/week")
     return data.get('results', [])[:10] if data else []
 
 @st.cache_data(ttl=TRENDING_TTL, show_spinner=False)
 def fetch_telugu_movies():
-    """Fetches 2 full pages of completed/released Telugu movies."""
-    import datetime
-    today = datetime.date.today().isoformat()
-    d1 = tmdb_get(f"discover/movie?with_original_language=te&sort_by=popularity.desc&primary_release_date.lte={today}&page=1")
-    d2 = tmdb_get(f"discover/movie?with_original_language=te&sort_by=popularity.desc&primary_release_date.lte={today}&page=2")
-    return (d1.get('results', []) + d2.get('results', []))
+    """Fetches the top 10 popular Telugu movies. Cached for 30 minutes."""
+    data = tmdb_get("discover/movie?with_original_language=te&sort_by=popularity.desc")
+    return data.get('results', [])[:10] if data else []
 
 @st.cache_data(ttl=TRENDING_TTL, show_spinner=False)
 def fetch_hindi_movies():
-    """Fetches 2 full pages of completed/released Hindi movies."""
-    import datetime
-    today = datetime.date.today().isoformat()
-    d1 = tmdb_get(f"discover/movie?with_original_language=hi&sort_by=popularity.desc&primary_release_date.lte={today}&page=1")
-    d2 = tmdb_get(f"discover/movie?with_original_language=hi&sort_by=popularity.desc&primary_release_date.lte={today}&page=2")
-    return (d1.get('results', []) + d2.get('results', []))
+    """Fetches the top 10 popular Hindi movies. Cached for 30 minutes."""
+    data = tmdb_get("discover/movie?with_original_language=hi&sort_by=popularity.desc")
+    return data.get('results', [])[:10] if data else []
 
 
 
@@ -238,9 +234,9 @@ body {{
 .p-mname span {{ color:#e50914; }}
 .p-srv {{ display:flex; align-items:center; gap:8px; padding:12px 28px; background:rgba(255,255,255,0.02); border-bottom:1px solid rgba(255,255,255,0.06); flex-wrap:wrap; }}
 .p-srv-label {{ color:#555; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:1px; margin-right:4px; }}
-.srv-btn { padding:8px 20px; border-radius:20px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.05); color:#bbb; cursor:pointer; font-size:13px; font-weight:700; transition:all 0.3s cubic-bezier(0.4, 0, 0.2, 1); font-family:'Outfit',sans-serif; letter-spacing:0.5px; }
-.srv-btn:hover { background:rgba(229,9,20,0.15); border-color:rgba(229,9,20,0.5); color:#fff; transform:translateY(-1px); }
-.srv-btn.active { background:linear-gradient(135deg,#e50914,#900); border-color:#e50914; color:#fff; box-shadow:0 4px 15px rgba(229,9,20,0.4); transform:translateY(-1px); }
+.srv-btn {{ padding:6px 16px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.05); color:#bbb; cursor:pointer; font-size:13px; font-weight:600; transition:all 0.25s; font-family:'Outfit',sans-serif; }}
+.srv-btn:hover {{ background:rgba(229,9,20,0.15); border-color:rgba(229,9,20,0.5); color:#fff; }}
+.srv-btn.active {{ background:linear-gradient(135deg,#e50914,#a30008); border-color:#e50914; color:#fff; box-shadow:0 4px 16px rgba(229,9,20,0.45); }}
 .srv-status {{ margin-left:auto; font-size:11px; font-weight:600; padding:4px 12px; border-radius:20px; }}
 .srv-status.trying {{ color:#f0a000; background:rgba(240,160,0,0.1); border:1px solid rgba(240,160,0,0.3); }}
 .srv-status.live {{ color:#22c55e; background:rgba(34,197,94,0.1); border:1px solid rgba(34,197,94,0.3); }}
@@ -288,12 +284,12 @@ body {{
 </div>
 <div class="p-srv">
     <span class="p-srv-label">Server:</span>
-    <button class="srv-btn active" data-key="s1" onclick="loadSrc('s1',this)">VidLink</button>
-    <button class="srv-btn" data-key="s2" onclick="loadSrc('s2',this)">VidSrc CC</button>
-    <button class="srv-btn" data-key="s3" onclick="loadSrc('s3',this)">MoviesAPI</button>
-    <button class="srv-btn" data-key="s4" onclick="loadSrc('s4',this)">2Embed</button>
-    <button class="srv-btn" data-key="s5" onclick="loadSrc('s5',this)">VidSrc RIP</button>
-    <button class="srv-btn" data-key="s6" onclick="loadSrc('s6',this)">Embed.su</button>
+    <button class="srv-btn active" data-key="s1" onclick="loadSrc('s1',this)">&#9889; Server 1</button>
+    <button class="srv-btn" data-key="s2" onclick="loadSrc('s2',this)">&#9889; Server 2</button>
+    <button class="srv-btn" data-key="s3" onclick="loadSrc('s3',this)">&#9889; Server 3</button>
+    <button class="srv-btn" data-key="s4" onclick="loadSrc('s4',this)">&#9889; Server 4</button>
+    <button class="srv-btn" data-key="s5" onclick="loadSrc('s5',this)">&#9889; Server 5</button>
+    <button class="srv-btn" data-key="s6" onclick="loadSrc('s6',this)">&#9889; Server 6</button>
     <span class="srv-status trying" id="st">Connecting...</span>
 </div>
 <div class="p-cinema">
@@ -314,7 +310,7 @@ body {{
             <button class="p-retry" onclick="retryAll()">&#8617; Try all servers again</button>
         </div>
         <iframe id="pf" src="about:blank"
-            sandbox="allow-scripts allow-same-origin allow-presentation allow-forms"
+            sandbox="allow-scripts allow-same-origin allow-presentation"
             allowfullscreen allow="autoplay; encrypted-media; fullscreen; picture-in-picture; web-share"
             onload="onFL()"></iframe>
         <button class="fs-btn" onclick="goFS()" title="Fullscreen (F)">
@@ -913,7 +909,7 @@ def render_movie_cards(titles, years, ratings, ids, details_list):
         rating  = ratings[i] if ratings[i] else 'N/A'
         movie_id = str(ids[i])
         d = details_list[i] if details_list[i] else {
-            'poster': "https://raw.githubusercontent.com/Bunnyvalluri/Personalized-Movie-Recommendation-System-Using-Collaborative-Filtering/main/assets/no_poster.jpg",
+            'poster': "https://placehold.co/500x750/333/FFFFFF?text=No+Poster",
             'trailer': None, 'overview': '', 'genres': ''
         }
 
@@ -941,7 +937,7 @@ def render_movie_cards(titles, years, ratings, ids, details_list):
             f'<div class="movie-card">'
             f'<div class="poster-wrap">'
             f'<img src="{poster_url}" class="movie-poster" alt="{title_esc}" '
-            f'onerror="this.src=\'https://raw.githubusercontent.com/Bunnyvalluri/Personalized-Movie-Recommendation-System-Using-Collaborative-Filtering/main/assets/no_poster.jpg\'">'
+            f'onerror="this.src=\'https://placehold.co/500x750/111/FFFFFF?text=No+Poster\'">'
             f'<div class="poster-overlay"></div>'
             f'<div class="rating-badge">⭐ {rating}</div>'
             f'</div>'
@@ -993,7 +989,7 @@ else:
             all_ids = [str(m['id']) for m in all_movies]
             
             # Fetch all details in parallel extremely fast
-            with concurrent.futures.ThreadPoolExecutor(max_workers=40) as executor:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=30) as executor:
                 all_details = list(executor.map(fetch_movie_details, all_ids))
             
             # Split them back up safely

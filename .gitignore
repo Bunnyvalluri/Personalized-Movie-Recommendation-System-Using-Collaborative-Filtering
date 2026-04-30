@@ -143,3 +143,5 @@ configs/secrets.yaml
 
 
 .streamlit/secrets.toml
+
+artifacts/*.npy

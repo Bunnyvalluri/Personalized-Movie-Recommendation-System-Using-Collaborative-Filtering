@@ -832,31 +832,22 @@ st.markdown("""
 # ─── LOAD DATA (cached – loads once per server session) ───────────────────────
 @st.cache_resource(show_spinner=False)
 def load_data():
-    try:
-        with open('artifacts/movie_dict.pkl', 'rb') as f:
-            movies_dict = pickle.load(f)
-        movies = pd.DataFrame(movies_dict)
+    import json
+    import numpy as np
+    
+    # 1. Load dictionary from JSON safely (mitigates Pickle vulnerabilities)
+    with open('artifacts/movie_dict.json', 'r') as f:
+        movies_dict = json.load(f)
+    movies = pd.DataFrame(movies_dict)
 
-        if not os.path.exists('artifacts/similarity.pkl'):
-            cv = CountVectorizer(max_features=5000, stop_words='english')
-            vectors = cv.fit_transform(movies['tags']).toarray()
-            similarity = cosine_similarity(vectors)
-            with open('artifacts/similarity.pkl', 'wb') as f:
-                pickle.dump(similarity, f)
-        else:
-            with open('artifacts/similarity.pkl', 'rb') as f:
-                # Use latin1 encoding for pickle load to be safe with varied data sources
-                similarity = pickle.load(f, encoding='latin1')
-    except (UnicodeDecodeError, Exception):
-        # Fallback for older pickles or encoding issues
-        with open('artifacts/movie_dict.pkl', 'rb') as f:
-            movies_dict = pickle.load(f, encoding='latin1')
-        movies = pd.DataFrame(movies_dict)
-        if os.path.exists('artifacts/similarity.pkl'):
-            with open('artifacts/similarity.pkl', 'rb') as f:
-                similarity = pickle.load(f, encoding='latin1')
-        else:
-            similarity = None # Will be handled by the app
+    # 2. Load or compute similarity matrix safely
+    if not os.path.exists('artifacts/similarity.npy'):
+        cv = CountVectorizer(max_features=5000, stop_words='english')
+        vectors = cv.fit_transform(movies['tags']).toarray()
+        similarity = cosine_similarity(vectors)
+        np.save('artifacts/similarity.npy', similarity)
+    else:
+        similarity = np.load('artifacts/similarity.npy')
 
     return movies, similarity
 
@@ -864,7 +855,7 @@ try:
     with st.spinner("Loading iBOMMA Rahul… ⚡"):
         movies, similarity = load_data()
 except FileNotFoundError:
-    st.error("❌ Core dataset 'movie_dict.pkl' not found in the 'artifacts/' folder.")
+    st.error("❌ Core dataset 'movie_dict.json' not found in the 'artifacts/' folder.")
     st.stop()
 except Exception as e:
     st.error(f"❌ Failed to load data: {e}")

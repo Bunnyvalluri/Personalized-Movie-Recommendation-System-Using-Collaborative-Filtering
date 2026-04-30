@@ -1062,8 +1062,11 @@ else:
                     st.markdown("<div class='section-title'>Trending Hindi Features</div>", unsafe_allow_html=True)
                     render_movie_cards(tn, ty, tr, ti, td)
         else:
-            st.info("Could not load movies. Please check your internet connection.")
-
+            st.error(f"DEBUG INFO: Could not load movies from TMDB API.\\n"
+                     f"- Trending fetched: {len(trending)} movies\\n"
+                     f"- Telugu fetched: {len(telugu)} movies\\n"
+                     f"- Hindi fetched: {len(hindi)} movies\\n"
+                     f"Please check if your internet connection is blocking api.tmdb.org.")
 st.markdown("""
 <div style="margin-top: 100px; padding: 80px 40px; background: rgba(0,0,0,0.5); border-top: 1px solid rgba(255,255,255,0.05); text-align: center;">
     <div style="display: flex; justify-content: center; gap: 40px; margin-bottom: 40px;">

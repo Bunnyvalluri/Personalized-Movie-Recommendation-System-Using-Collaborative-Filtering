@@ -116,15 +116,35 @@ def fetch_trending():
 
 @st.cache_data(ttl=TRENDING_TTL, show_spinner=False)
 def fetch_telugu_movies():
-    """Fetches the top 15 all-time great Telugu movies sorted by vote count."""
-    data = tmdb_get("discover/movie?with_original_language=te&sort_by=vote_count.desc")
-    return data.get('results', [])[:15] if data else []
+    """Fetches a mix of current popular Telugu hits and all-time classics."""
+    pop = tmdb_get("discover/movie?with_original_language=te&sort_by=popularity.desc")
+    top = tmdb_get("discover/movie?with_original_language=te&sort_by=vote_count.desc")
+    pop_list = pop.get('results', [])[:10] if pop else []
+    top_list = top.get('results', [])[:5] if top else []
+    
+    combined = pop_list.copy()
+    seen = {m['id'] for m in combined}
+    for m in top_list:
+        if m['id'] not in seen:
+            combined.append(m)
+            seen.add(m['id'])
+    return combined
 
 @st.cache_data(ttl=TRENDING_TTL, show_spinner=False)
 def fetch_hindi_movies():
-    """Fetches the top 15 all-time great Hindi movies sorted by vote count."""
-    data = tmdb_get("discover/movie?with_original_language=hi&sort_by=vote_count.desc")
-    return data.get('results', [])[:15] if data else []
+    """Fetches a mix of current popular Hindi hits and all-time classics."""
+    pop = tmdb_get("discover/movie?with_original_language=hi&sort_by=popularity.desc")
+    top = tmdb_get("discover/movie?with_original_language=hi&sort_by=vote_count.desc")
+    pop_list = pop.get('results', [])[:10] if pop else []
+    top_list = top.get('results', [])[:5] if top else []
+    
+    combined = pop_list.copy()
+    seen = {m['id'] for m in combined}
+    for m in top_list:
+        if m['id'] not in seen:
+            combined.append(m)
+            seen.add(m['id'])
+    return combined
 
 
 

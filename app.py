@@ -74,7 +74,7 @@ def fetch_movie_details(movie_id):
     Result is cached per movie_id for 1 hour — repeat visits are instant.
     """
     details = {
-        'poster': "https://placehold.co/500x750/333/FFFFFF?text=No+Poster",
+        'poster': "https://raw.githubusercontent.com/Bunnyvalluri/Personalized-Movie-Recommendation-System-Using-Collaborative-Filtering/main/assets/no_poster.jpg",
         'trailer': None,
         'overview': "No plot summary available.",
         'genres': ""
@@ -913,7 +913,7 @@ def render_movie_cards(titles, years, ratings, ids, details_list):
         rating  = ratings[i] if ratings[i] else 'N/A'
         movie_id = str(ids[i])
         d = details_list[i] if details_list[i] else {
-            'poster': "https://placehold.co/500x750/333/FFFFFF?text=No+Poster",
+            'poster': "https://raw.githubusercontent.com/Bunnyvalluri/Personalized-Movie-Recommendation-System-Using-Collaborative-Filtering/main/assets/no_poster.jpg",
             'trailer': None, 'overview': '', 'genres': ''
         }
 
@@ -941,7 +941,7 @@ def render_movie_cards(titles, years, ratings, ids, details_list):
             f'<div class="movie-card">'
             f'<div class="poster-wrap">'
             f'<img src="{poster_url}" class="movie-poster" alt="{title_esc}" '
-            f'onerror="this.src=\'https://placehold.co/500x750/111/FFFFFF?text=No+Poster\'">'
+            f'onerror="this.src=\'https://raw.githubusercontent.com/Bunnyvalluri/Personalized-Movie-Recommendation-System-Using-Collaborative-Filtering/main/assets/no_poster.jpg\'">'
             f'<div class="poster-overlay"></div>'
             f'<div class="rating-badge">⭐ {rating}</div>'
             f'</div>'

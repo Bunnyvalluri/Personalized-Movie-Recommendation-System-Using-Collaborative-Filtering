@@ -9,10 +9,15 @@ import os
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
-# Configure requests session with minimal retries to fail fast
+# Configure requests session with large pool for high concurrency
 session = requests.Session()
-retries = Retry(total=1, backoff_factor=0.1)
-session.mount('https://', HTTPAdapter(max_retries=retries))
+adapter = HTTPAdapter(
+    pool_connections=50, 
+    pool_maxsize=50, 
+    max_retries=Retry(total=3, backoff_factor=0.2, status_forcelist=[429, 500, 502, 503, 504])
+)
+session.mount('https://', adapter)
+session.mount('http://', adapter)
 
 # ─── SPEED: cache all TMDB calls so repeat visits are instant ────────────────
 # fetch_movie_details is cached per movie_id for 1 hour
@@ -42,7 +47,7 @@ def tmdb_get(path):
 
     # 1. Try Mirror first (bypasses ISP blocks and connection throttling)
     try:
-        r = session.get(mirror, headers=HEADERS, timeout=3.5)
+        r = session.get(mirror, headers=HEADERS, timeout=7.5)
         if r.status_code == 200:
             return r.json()
     except Exception:
@@ -50,7 +55,7 @@ def tmdb_get(path):
 
     # 2. Try Direct
     try:
-        r = session.get(direct, headers=HEADERS, timeout=3.5)
+        r = session.get(direct, headers=HEADERS, timeout=7.5)
         if r.status_code == 200:
             return r.json()
     except Exception:
@@ -58,7 +63,7 @@ def tmdb_get(path):
 
     # 3. Fallback to Proxy
     try:
-        r = session.get(proxy, headers=HEADERS, timeout=6)
+        r = session.get(proxy, headers=HEADERS, timeout=10)
         if r.status_code == 200:
             data = r.json()
             if data and not data.get('error'):

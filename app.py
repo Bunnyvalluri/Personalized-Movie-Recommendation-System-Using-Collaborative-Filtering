@@ -31,28 +31,32 @@ except (KeyError, FileNotFoundError):
 HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
 
 
+_TMDB_DIRECT_WORKS = None
+
 def tmdb_get(path):
-    """Fetch a TMDB API path, trying proxy first then direct."""
+    """Fetch a TMDB API path, intelligently routing via direct or proxy."""
+    global _TMDB_DIRECT_WORKS
     from urllib.parse import quote
     direct = f"https://api.themoviedb.org/3/{path}&api_key={TMDB_KEY}"
-    # URL-encode the inner URL so codetabs proxy doesn't misparse the & symbols
     proxy = f"https://api.codetabs.com/v1/proxy?quest={quote(direct, safe='')}"
 
-    # Try proxy first (works when TMDB is ISP-blocked)
+    # 1. Try Direct first (lightning fast). If blocked (e.g. in India), remember the failure.
+    if _TMDB_DIRECT_WORKS is not False:
+        try:
+            r = session.get(direct, headers=HEADERS, timeout=2.5)
+            if r.status_code == 200:
+                _TMDB_DIRECT_WORKS = True
+                return r.json()
+        except Exception:
+            _TMDB_DIRECT_WORKS = False # Mark as blocked for this server session
+
+    # 2. Fallback to Proxy
     try:
-        r = session.get(proxy, headers=HEADERS, timeout=6)  # was 10s – fail faster
+        r = session.get(proxy, headers=HEADERS, timeout=6)
         if r.status_code == 200:
             data = r.json()
             if data and not data.get('error'):
                 return data
-    except Exception:
-        pass
-
-    # Fallback: try direct
-    try:
-        r = session.get(direct, headers=HEADERS, timeout=5)
-        if r.status_code == 200:
-            return r.json()
     except Exception:
         pass
 
@@ -131,7 +135,7 @@ def recommend(movie):
     top_indices = [i[0] for i in distances[1:6]]
     movie_ids = [str(movies.iloc[idx].movie_id) for idx in top_indices]
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
         details_list = list(executor.map(fetch_movie_details, movie_ids))
 
     names, years, ratings = [], [], []
@@ -970,7 +974,7 @@ else:
         trending = fetch_trending()
         if trending:
             t_ids = [str(m['id']) for m in trending]
-            with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
                 t_details = list(executor.map(fetch_movie_details, t_ids))
 
             t_names   = [m.get('title', 'Unknown') for m in trending]

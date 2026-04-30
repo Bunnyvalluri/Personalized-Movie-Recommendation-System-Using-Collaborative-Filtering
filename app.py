@@ -362,7 +362,7 @@ var srv={{
 }};
 var srvN={{s1:'VidSrc CC',s2:'Embed.su',s3:'VidLink',s4:'VidSrc RIP',s5:'2Embed',s6:'MoviesAPI'}};
 var ORD=['s1','s2','s3','s4','s5','s6'];
-var timer=null, realLoad=false, curKey=null, autoCycle=true;
+var timer=null, realLoad=false, curKey=null, autoCycle=false;
 
 // ── AD / POPUP BLOCKER ────────────────────────────────────────────────────
 // Block all window.open popup attempts from streaming iframes
@@ -397,15 +397,21 @@ function startTimer(k){{
     clearTimeout(timer);
     timer=setTimeout(function(){{
         if(plEl&&!plEl.classList.contains('hidden')){{
-            var ni=ORD.indexOf(k)+1;
-            if(ni<ORD.length&&autoCycle){{
-                var nk=ORD[ni];
-                activateBtn(nk); showLoad(nk);
-                document.getElementById('pf').src=srv[nk];
-                startTimer(nk);
-            }}else{{plEl.classList.add('hidden');showUnavail();}}
+            if(autoCycle){{
+                var ni=ORD.indexOf(k)+1;
+                if(ni<ORD.length){{
+                    var nk=ORD[ni];
+                    activateBtn(nk); showLoad(nk);
+                    document.getElementById('pf').src=srv[nk];
+                    startTimer(nk);
+                }}else{{plEl.classList.add('hidden');showUnavail();}}
+            }} else {{
+                // Stop spinning, let the user decide if they want to switch
+                plEl.classList.add('hidden');
+                setStatus('live','&#127902; Server Loaded');
+            }}
         }}
-    }},6000);
+    }}, 12000); // Give it 12 full seconds to load
 }}
 function showUnavail(){{
     setStatus('dead','All servers failed');

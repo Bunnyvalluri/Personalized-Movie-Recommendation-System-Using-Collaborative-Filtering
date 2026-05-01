@@ -104,12 +104,12 @@ inject_base_css()
 render_nav("home")
 
 st.markdown("""
-<div style="text-align:center;padding:40px 20px 20px;">
-  <h1 style="font-size:clamp(2.5rem,5vw,4.5rem);font-weight:900;letter-spacing:-1px;margin-bottom:10px;
-    background:linear-gradient(135deg,#fff 0%,#a0a0a0 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">
+<div style="text-align:center;padding:60px 20px 40px;">
+  <h1 style="font-family:'Outfit',sans-serif;font-size:clamp(2.5rem,6vw,5rem);font-weight:900;letter-spacing:-1.5px;margin-bottom:16px;
+    background:linear-gradient(135deg,#fff 0%,#888 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-shadow:0 10px 30px rgba(255,255,255,0.05);">
     Find Your Next Favorite Movie
   </h1>
-  <p style="font-size:clamp(1rem,2vw,1.15rem);color:#888;max-width:650px;margin:0 auto 30px;line-height:1.7;">
+  <p style="font-family:'Inter',sans-serif;font-size:clamp(1rem,2vw,1.2rem);font-weight:500;color:#999;max-width:650px;margin:0 auto 30px;line-height:1.7;">
     Powered by collaborative filtering &amp; real-time streaming.
   </p>
 </div>""", unsafe_allow_html=True)

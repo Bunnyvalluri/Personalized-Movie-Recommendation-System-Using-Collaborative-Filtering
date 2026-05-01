@@ -171,7 +171,12 @@ def _fetch_regional(lang: str, genre_label: str) -> dict:
     for key, data in zip(queries.keys(), results):
         movies = []
         for m in (data.get("results",[])[:20] if data else []):
-            if m["id"] not in seen: movies.append(m); seen.add(m["id"])
+            if m["id"] not in seen:
+                title = m.get("title", "").lower()
+                if "maa alludu very good" in title:
+                    continue
+                movies.append(m)
+                seen.add(m["id"])
         grouped[key] = movies
     p2 = grouped.pop("🔥 Popular 2", [])
     grouped["🔥 Popular"] = grouped.get("🔥 Popular",[]) + p2

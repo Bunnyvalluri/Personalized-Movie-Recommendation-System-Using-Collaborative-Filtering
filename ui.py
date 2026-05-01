@@ -164,7 +164,12 @@ def render_movie_cards(titles, years, ratings, ids, details_list, selected_movie
         title_esc = escape(titles[i])
         overview_esc = escape(d.get("overview",""))
         genre_pills = "".join(f'<span class="genre-tag">{escape(g.strip())}</span>' for g in d.get("genres","").split(" • ") if g.strip())
-        trailer_html = f'<a href="{escape(d["trailer"])}" target="_blank" class="trailer-btn">🎬</a>' if d.get("trailer") else ""
+        if d.get("trailer"):
+            trailer_html = f'<a href="{escape(d["trailer"])}" target="_blank" class="trailer-btn">🎬</a>'
+        else:
+            # Fallback to YouTube search query for the trailer
+            search_query = _q(f"{titles[i]} {years[i]} official trailer")
+            trailer_html = f'<a href="https://www.youtube.com/results?search_query={search_query}" target="_blank" class="trailer-btn">🎬</a>'
         cards_html += (
             f'<div class="movie-card">'
             f'<div class="poster-wrap">'

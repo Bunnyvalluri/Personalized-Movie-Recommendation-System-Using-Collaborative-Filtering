@@ -364,10 +364,10 @@
     });
 
     // ── DYNAMIC SANDBOX ─────────────────────────────────────────────────────────
-    // VidLink (s1) needs NO sandbox — it detects and refuses it, but has the LARGEST catalog
+    // VidLink (s1), VidSrc IN (s2), MultiEmbed (s4) need NO sandbox
     // All other servers get sandbox WITHOUT allow-popups = browser blocks their popup ads
     const SANDBOX_VAL = 'allow-scripts allow-same-origin allow-forms allow-presentation allow-modals';
-    const NO_SANDBOX_SERVERS = new Set(['s1']); // VidLink only
+    const NO_SANDBOX_SERVERS = new Set(['s1', 's2', 's4']);
 
     function setSandboxFor(k) {
         var f = document.getElementById('player-frame');
@@ -380,16 +380,16 @@
 
     // ── Servers — VidLink first (biggest catalog), sandboxed servers 2-6 ─────────
     const servers = {
-        s1: 'https://vidlink.pro/movie/'           + mid,  // largest catalog, no sandbox
-        s2: 'https://vidsrc.cc/v2/embed/movie/'   + mid,  // ✅ sandbox → no popups
-        s3: 'https://embed.su/embed/movie/'        + mid,  // ✅ sandbox → no popups
-        s4: 'https://vidsrc.rip/embed/movie/'      + mid,  // ✅ sandbox → no popups
-        s5: 'https://www.2embed.cc/embed/'         + mid,  // ✅ sandbox → no popups
-        s6: 'https://moviesapi.club/movie/'        + mid   // ✅ sandbox → no popups
+        s1: 'https://vidlink.pro/movie/'           + mid,  // largest Hollywood
+        s2: 'https://vidsrc.in/embed/movie/'       + mid,  // Best for Indian/Regional
+        s3: 'https://vidsrc.cc/v2/embed/movie/'   + mid,  // ✅ sandbox → no popups
+        s4: 'https://multiembed.mov/directstream.php?video_id=' + mid + '&tmdb=1',
+        s5: 'https://vidsrc.rip/embed/movie/'      + mid,  
+        s6: 'https://embed.su/embed/movie/'        + mid   
     };
     const serverNames = {
-        s1:'VidLink', s2:'VidSrc CC', s3:'Embed.su',
-        s4:'VidSrc RIP', s5:'2Embed', s6:'MoviesAPI'
+        s1:'VidLink', s2:'VidSrc IN', s3:'VidSrc CC',
+        s4:'MultiEmbed', s5:'VidSrc RIP', s6:'Embed.su'
     };
     const ORDER = ['s1','s2','s3','s4','s5','s6'];
 

@@ -13,6 +13,13 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
+# ── NAVIGATION INTERCEPT ──────────────────────────────────────────────────────
+nav_target = st.query_params.get("nav")
+if nav_target == "telugu":
+    st.switch_page("pages/Telugu_Cinema.py")
+elif nav_target == "hindi":
+    st.switch_page("pages/Hindi_Cinema.py")
+
 # ── INTERNAL PLAYER ROUTE ─────────────────────────────────────────────────────
 if "watch" in st.query_params:
     import json, html as _html

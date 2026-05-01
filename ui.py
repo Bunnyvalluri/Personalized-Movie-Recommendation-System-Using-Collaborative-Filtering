@@ -427,7 +427,7 @@ div[data-testid="stTabsTabList"] {
 
 
 def render_nav(active_page="home"):
-    pages = [("🏠 Home", "/", "home"), ("🎬 Telugu", "/Telugu_Cinema", "telugu"), ("🌟 Hindi", "/Hindi_Cinema", "hindi")]
+    pages = [("🏠 Home", "/", "home"), ("🎬 Telugu", "/?nav=telugu", "telugu"), ("🌟 Hindi", "/?nav=hindi", "hindi")]
     links = "".join(
         f'<a href="{url}" class="{"active" if key==active_page else ""}">{label}</a>'
         for label, url, key in pages

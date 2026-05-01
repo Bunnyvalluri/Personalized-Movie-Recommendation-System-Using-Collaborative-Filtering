@@ -18,16 +18,9 @@ header { visibility: hidden; }
 footer { visibility: hidden; }
 .block-container { padding-top: 0 !important; max-width: 100% !important; padding-bottom: 0 !important; }
 
-/* Aurora Background */
-@keyframes aurora {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
+/* Aurora Background - Static for performance */
 .stApp {
   background: linear-gradient(135deg, #05050a 0%, #0d0b14 25%, #150f1a 50%, #0a0a14 75%, #020205 100%);
-  background-size: 300% 300%;
-  animation: aurora 25s ease infinite;
   color: #f5f5f7;
   font-family: 'Inter', sans-serif !important;
   min-height: 100vh;
@@ -517,8 +510,11 @@ def render_section(movie_list, selected_movie=""):
     ratings = [safe_rating(m.get("vote_average",0)) for m in movie_list]
     ids     = [str(m["id"]) for m in movie_list]
     
+    from backend import get_genre_map
+    gmap = get_genre_map()
+    
     with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
-        details = list(executor.map(details_from_discover, movie_list))
+        details = list(executor.map(lambda m: details_from_discover(m, gmap), movie_list))
         
     render_movie_cards(names, years, ratings, ids, details, selected_movie)
 

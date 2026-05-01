@@ -246,7 +246,7 @@ with hero_left:
           <div class="hero-eyebrow-dot">🎬</div>
           <span class="hero-eyebrow-txt">AI-Powered Free Streaming</span>
         </div>
-        <h1 class="hero-h1">Your Cinema.<br><span class="acc">Reimagined.</span></h1>
+        <h1 class="hero-h1">Infinite Cinema.<br><span class="acc">Zero Limits.</span></h1>
         <p class="hero-sub">
           Telugu blockbusters, Hindi hits &amp; global cinema — all in one place.
           AI picks your next obsession. Stream free, forever.

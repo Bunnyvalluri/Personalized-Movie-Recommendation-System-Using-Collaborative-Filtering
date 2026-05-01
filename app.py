@@ -492,40 +492,86 @@ with hero_right:
     """, height=530, scrolling=False)
 
 
-# ── GENRE NAV CARDS using native st.page_link (100% reliable routing) ─────────
-st.markdown("""<style>
-/* Style the st.page_link elements to look like premium genre cards */
-[data-testid="stPageLink-NavLink"]{
-  display:flex!important;align-items:center!important;gap:14px!important;
-  padding:18px 28px!important;border-radius:16px!important;
-  font-family:'Outfit',sans-serif!important;font-size:1rem!important;font-weight:700!important;
-  text-decoration:none!important;color:#fff!important;
-  border:none!important;width:100%!important;
-  transition:all 0.3s cubic-bezier(.175,.885,.32,1.275)!important;
+# ── GENRE NAVIGATION BUTTONS ─────────────────────────────────────────────────
+import streamlit.components.v1 as _btns
+_btns.html("""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@700;900&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:transparent;font-family:'Outfit',sans-serif;}
+.btn-row{display:flex;gap:16px;padding:8px 0 4px;flex-wrap:wrap;}
+.genre-btn{
+  display:flex;align-items:center;gap:14px;
+  padding:18px 32px;border-radius:16px;border:none;
+  cursor:pointer;font-family:'Outfit',sans-serif;
+  font-size:1rem;font-weight:800;color:#fff;
+  position:relative;overflow:hidden;
+  transition:transform 0.25s cubic-bezier(.175,.885,.32,1.275),
+             box-shadow 0.25s ease;
+  text-align:left;min-width:220px;
 }
-[data-testid="stPageLink-NavLink"]:hover{transform:translateY(-4px)!important;}
-div[data-testid="column"]:nth-child(1) [data-testid="stPageLink-NavLink"]{
-  background:linear-gradient(135deg,rgba(229,9,20,0.92),rgba(160,5,10,0.96))!important;
-  box-shadow:0 8px 32px rgba(229,9,20,0.38)!important;
+.genre-btn::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(rgba(255,255,255,0.12),transparent);
+  pointer-events:none;
 }
-div[data-testid="column"]:nth-child(1) [data-testid="stPageLink-NavLink"]:hover{
-  box-shadow:0 16px 48px rgba(229,9,20,0.55)!important;
+.genre-btn:hover{transform:translateY(-5px);}
+.genre-btn:active{transform:translateY(-2px);}
+/* Telugu — vivid red-orange */
+.btn-telugu{
+  background:linear-gradient(135deg,#ff0a16 0%,#e50914 40%,#c20000 100%);
+  box-shadow:0 8px 28px rgba(229,9,20,0.5),
+             0 2px 8px rgba(229,9,20,0.3),
+             inset 0 1px 0 rgba(255,255,255,0.2);
 }
-div[data-testid="column"]:nth-child(2) [data-testid="stPageLink-NavLink"]{
-  background:linear-gradient(135deg,rgba(100,20,180,0.92),rgba(60,10,120,0.96))!important;
-  box-shadow:0 8px 32px rgba(100,20,180,0.32)!important;
+.btn-telugu:hover{
+  box-shadow:0 18px 48px rgba(229,9,20,0.65),
+             0 4px 16px rgba(229,9,20,0.4),
+             inset 0 1px 0 rgba(255,255,255,0.25);
 }
-div[data-testid="column"]:nth-child(2) [data-testid="stPageLink-NavLink"]:hover{
-  box-shadow:0 16px 48px rgba(100,20,180,0.48)!important;
+/* Hindi — vivid violet-indigo */
+.btn-hindi{
+  background:linear-gradient(135deg,#8b5cf6 0%,#7c3aed 40%,#5b21b6 100%);
+  box-shadow:0 8px 28px rgba(139,92,246,0.5),
+             0 2px 8px rgba(124,58,237,0.3),
+             inset 0 1px 0 rgba(255,255,255,0.2);
 }
-[data-testid="stPageLink"]{margin:0!important;}
-</style>""", unsafe_allow_html=True)
-
-gcol1, gcol2, gcol3 = st.columns([1, 1, 2])
-with gcol1:
-    st.page_link("pages/telugu_cinema.py", label="🌶️ Telugu Cinema — TOLLYWOOD · 500+ FILMS")
-with gcol2:
-    st.page_link("pages/hindi_cinema.py",  label="✨ Hindi Cinema — BOLLYWOOD · 500+ FILMS")
+.btn-hindi:hover{
+  box-shadow:0 18px 48px rgba(139,92,246,0.65),
+             0 4px 16px rgba(124,58,237,0.4),
+             inset 0 1px 0 rgba(255,255,255,0.25);
+}
+.btn-icon{font-size:1.5rem;line-height:1;}
+.btn-info{display:flex;flex-direction:column;gap:2px;}
+.btn-label{font-size:1rem;font-weight:900;letter-spacing:-0.3px;}
+.btn-sub{font-size:0.7rem;font-weight:600;opacity:0.65;letter-spacing:1px;text-transform:uppercase;}
+/* Shine animation */
+@keyframes shine{0%{left:-120%}60%,100%{left:120%}}
+.genre-btn::after{
+  content:'';position:absolute;top:0;left:-120%;
+  width:60%;height:100%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.18),transparent);
+  animation:shine 3.5s ease-in-out infinite;
+}
+.btn-hindi::after{animation-delay:1.75s;}
+</style>
+<div class="btn-row">
+  <button class="genre-btn btn-telugu" onclick="window.parent.location.href='/telugu_cinema'">
+    <span class="btn-icon">🌶️</span>
+    <div class="btn-info">
+      <span class="btn-label">Telugu Cinema</span>
+      <span class="btn-sub">Tollywood · 500+ Films</span>
+    </div>
+  </button>
+  <button class="genre-btn btn-hindi" onclick="window.parent.location.href='/hindi_cinema'">
+    <span class="btn-icon">✨</span>
+    <div class="btn-info">
+      <span class="btn-label">Hindi Cinema</span>
+      <span class="btn-sub">Bollywood · 500+ Films</span>
+    </div>
+  </button>
+</div>
+""", height=100)
 
 # AI Search
 st.markdown("""

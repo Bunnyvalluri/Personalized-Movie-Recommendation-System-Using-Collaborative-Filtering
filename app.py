@@ -230,33 +230,267 @@ st.markdown("""<style>
 
 render_nav("home")
 
-# Hero
-st.markdown("""
-<div class="hero-wrap">
-  <div class="hero-glow-1"></div>
-  <div class="hero-glow-2"></div>
-  <div class="hero-grain"></div>
-  <div class="hero-dots"></div>
-  <div class="hero-content">
-    <div class="hero-eyebrow">
-      <div class="hero-eyebrow-dot">🎬</div>
-      <span class="hero-eyebrow-txt">AI-Powered Free Streaming</span>
+
+# ── HERO: 2-column layout ─────────────────────────────────────────────────────
+import streamlit.components.v1 as _comps
+
+hero_left, hero_right = st.columns([1, 1], gap="large")
+
+with hero_left:
+    st.markdown("""
+    <div class="hero-wrap" style="min-height:unset;padding:40px 0 0;margin:0;">
+      <div class="hero-glow-1" style="top:-10%;left:-20%;width:90%;height:100%;"></div>
+      <div class="hero-grain"></div>
+      <div class="hero-content" style="max-width:100%;">
+        <div class="hero-eyebrow">
+          <div class="hero-eyebrow-dot">🎬</div>
+          <span class="hero-eyebrow-txt">AI-Powered Free Streaming</span>
+        </div>
+        <h1 class="hero-h1">Your Cinema.<br><span class="acc">Reimagined.</span></h1>
+        <p class="hero-sub">
+          Telugu blockbusters, Hindi hits &amp; global cinema — all in one place.
+          AI picks your next obsession. Stream free, forever.
+        </p>
+        <div class="stats-row">
+          <div class="stat-pill"><span class="stat-pill-num">10K+</span><span class="stat-pill-lbl">Movies</span></div>
+          <div class="stat-pill"><span class="stat-pill-num">HD</span><span class="stat-pill-lbl">Quality</span></div>
+          <div class="stat-pill"><span class="stat-pill-num">Free</span><span class="stat-pill-lbl">Forever</span></div>
+          <div class="stat-pill"><span class="stat-pill-num">Zero</span><span class="stat-pill-lbl">Ads</span></div>
+        </div>
+      </div>
     </div>
-    <h1 class="hero-h1">Your Cinema.<br><span class="acc">Reimagined.</span></h1>
-    <p class="hero-sub">
-      Telugu blockbusters, Hindi hits &amp; global cinema — all in one place.
-      AI picks your next obsession. Stream free, forever.
-    </p>
-    <div class="stats-row">
-      <div class="stat-pill"><span class="stat-pill-num">10K+</span><span class="stat-pill-lbl">Movies</span></div>
-      <div class="stat-pill"><span class="stat-pill-num">HD</span><span class="stat-pill-lbl">Quality</span></div>
-      <div class="stat-pill"><span class="stat-pill-num">Free</span><span class="stat-pill-lbl">Forever</span></div>
-      <div class="stat-pill"><span class="stat-pill-num">Zero</span><span class="stat-pill-lbl">Ads</span></div>
+    """, unsafe_allow_html=True)
+
+with hero_right:
+    _comps.html("""
+    <!DOCTYPE html><html><head><style>
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{background:transparent;overflow:hidden;height:520px;display:flex;align-items:center;justify-content:center;}
+    .scene{
+      width:320px;height:460px;
+      perspective:900px;
+      perspective-origin:50% 40%;
+    }
+    .cards-3d{
+      width:100%;height:100%;
+      position:relative;
+      transform-style:preserve-3d;
+      animation:slowSpin 18s ease-in-out infinite;
+    }
+    @keyframes slowSpin{
+      0%   {transform:rotateX(10deg) rotateY(0deg);}
+      25%  {transform:rotateX(6deg)  rotateY(22deg);}
+      50%  {transform:rotateX(10deg) rotateY(0deg);}
+      75%  {transform:rotateX(6deg)  rotateY(-22deg);}
+      100% {transform:rotateX(10deg) rotateY(0deg);}
+    }
+    .card{
+      position:absolute;
+      width:200px;height:290px;
+      border-radius:18px;
+      transform-style:preserve-3d;
+      cursor:pointer;
+      transition:transform 0.4s ease;
+      left:50%;top:50%;
+      transform-origin:center center;
+    }
+    .card:hover{filter:brightness(1.15);}
+    .card-face{
+      position:absolute;inset:0;
+      border-radius:18px;
+      display:flex;flex-direction:column;
+      justify-content:flex-end;padding:16px;
+      backface-visibility:hidden;
+      overflow:hidden;
+    }
+    /* Card 1 — Telugu (front-center) */
+    .c1{
+      transform:translate(-50%,-50%) translateZ(80px) rotateY(0deg);
+      animation:float1 4s ease-in-out infinite;
+      z-index:3;
+    }
+    .c1 .card-face{
+      background:linear-gradient(160deg,#1a0a00 0%,#3d0000 40%,#8b0000 70%,#e50914 100%);
+      border:1px solid rgba(229,9,20,0.5);
+      box-shadow:0 30px 80px rgba(229,9,20,0.5),inset 0 1px 0 rgba(255,255,255,0.15);
+    }
+    /* Card 2 — Hindi (left-back) */
+    .c2{
+      transform:translate(-50%,-50%) translateZ(-30px) translateX(-90px) rotateY(25deg);
+      animation:float2 4.5s ease-in-out infinite;
+      z-index:2;
+    }
+    .c2 .card-face{
+      background:linear-gradient(160deg,#080018 0%,#1a0038 40%,#4a00a8 70%,#7c3aed 100%);
+      border:1px solid rgba(124,58,237,0.5);
+      box-shadow:0 25px 70px rgba(124,58,237,0.4),inset 0 1px 0 rgba(255,255,255,0.1);
+    }
+    /* Card 3 — Global (right-back) */
+    .c3{
+      transform:translate(-50%,-50%) translateZ(-30px) translateX(90px) rotateY(-25deg);
+      animation:float3 5s ease-in-out infinite;
+      z-index:2;
+    }
+    .c3 .card-face{
+      background:linear-gradient(160deg,#001a10 0%,#003828 40%,#007040 70%,#10b981 100%);
+      border:1px solid rgba(16,185,129,0.5);
+      box-shadow:0 25px 70px rgba(16,185,129,0.3),inset 0 1px 0 rgba(255,255,255,0.1);
+    }
+    @keyframes float1{0%,100%{transform:translate(-50%,-50%) translateZ(80px) rotateY(0deg) translateY(0);}50%{transform:translate(-50%,-50%) translateZ(80px) rotateY(0deg) translateY(-16px);}}
+    @keyframes float2{0%,100%{transform:translate(-50%,-50%) translateZ(-30px) translateX(-90px) rotateY(25deg) translateY(0);}50%{transform:translate(-50%,-50%) translateZ(-30px) translateX(-90px) rotateY(25deg) translateY(-10px);}}
+    @keyframes float3{0%,100%{transform:translate(-50%,-50%) translateZ(-30px) translateX(90px) rotateY(-25deg) translateY(0);}50%{transform:translate(-50%,-50%) translateZ(-30px) translateX(90px) rotateY(-25deg) translateY(-12px);}}
+    /* Poster content */
+    .poster-tag{
+      font-size:9px;font-weight:800;letter-spacing:2px;text-transform:uppercase;
+      color:rgba(255,255,255,0.5);margin-bottom:6px;font-family:sans-serif;
+    }
+    .poster-title{
+      font-size:18px;font-weight:900;color:#fff;line-height:1.1;
+      font-family:sans-serif;text-shadow:0 2px 12px rgba(0,0,0,0.8);
+      margin-bottom:8px;
+    }
+    .poster-meta{display:flex;align-items:center;gap:8px;}
+    .poster-rating{
+      font-size:11px;font-weight:700;color:#fbbf24;
+      background:rgba(0,0,0,0.4);padding:3px 8px;border-radius:6px;
+    }
+    .poster-genre{
+      font-size:10px;color:rgba(255,255,255,0.6);
+      font-family:sans-serif;font-weight:600;
+    }
+    /* Poster illustration area */
+    .poster-art{
+      position:absolute;top:0;left:0;right:0;bottom:0;
+      display:flex;align-items:center;justify-content:center;
+      opacity:0.15;font-size:90px;
+      pointer-events:none;
+    }
+    /* Play button overlay */
+    .play-overlay{
+      position:absolute;top:50%;left:50%;transform:translate(-50%,-60%);
+      width:52px;height:52px;border-radius:50%;
+      background:rgba(255,255,255,0.15);
+      backdrop-filter:blur(8px);
+      border:2px solid rgba(255,255,255,0.3);
+      display:flex;align-items:center;justify-content:center;
+      font-size:20px;color:#fff;
+      animation:pulsePlay 2.5s ease-in-out infinite;
+    }
+    @keyframes pulsePlay{
+      0%,100%{box-shadow:0 0 0 0 rgba(255,255,255,0.2);}
+      50%{box-shadow:0 0 0 14px rgba(255,255,255,0);}
+    }
+    /* Glow floor reflection */
+    .floor-glow{
+      position:absolute;bottom:-40px;left:50%;transform:translateX(-50%);
+      width:260px;height:60px;
+      background:radial-gradient(ellipse,rgba(229,9,20,0.25) 0%,transparent 70%);
+      filter:blur(16px);
+      animation:float1 4s ease-in-out infinite;
+    }
+    /* Stars */
+    .stars{position:absolute;inset:0;overflow:hidden;pointer-events:none;}
+    .star{
+      position:absolute;border-radius:50%;background:#fff;
+      animation:twinkle var(--d) ease-in-out infinite;
+      opacity:0;
+    }
+    @keyframes twinkle{0%,100%{opacity:0;}50%{opacity:var(--op);}}
+    /* Orbit ring */
+    .orbit-ring{
+      position:absolute;top:50%;left:50%;
+      width:380px;height:380px;
+      margin:-190px 0 0 -190px;
+      border-radius:50%;
+      border:1px solid rgba(229,9,20,0.12);
+      animation:orbitSpin 20s linear infinite;
+      pointer-events:none;
+    }
+    .orbit-ring2{
+      width:480px;height:480px;margin:-240px 0 0 -240px;
+      border-color:rgba(124,58,237,0.08);
+      animation-duration:30s;animation-direction:reverse;
+    }
+    @keyframes orbitSpin{to{transform:rotate(360deg);}}
+    .orbit-dot{
+      position:absolute;top:-4px;left:50%;margin-left:-4px;
+      width:8px;height:8px;border-radius:50%;
+      background:rgba(229,9,20,0.8);
+      box-shadow:0 0 8px rgba(229,9,20,0.6);
+    }
+    </style></head><body>
+    <div style="position:relative;width:520px;height:520px;display:flex;align-items:center;justify-content:center;">
+      <!-- Stars -->
+      <div class="stars" id="stars"></div>
+      <!-- Orbit rings -->
+      <div class="orbit-ring"><div class="orbit-dot"></div></div>
+      <div class="orbit-ring orbit-ring2"></div>
+      <!-- 3D Scene -->
+      <div class="scene">
+        <div class="cards-3d" id="cards">
+          <!-- Card 1: Telugu -->
+          <div class="card c1">
+            <div class="card-face">
+              <div class="poster-art">🎭</div>
+              <div class="play-overlay">▶</div>
+              <div class="poster-tag">🌶️ Tollywood</div>
+              <div class="poster-title">RRR</div>
+              <div class="poster-meta">
+                <span class="poster-rating">★ 8.0</span>
+                <span class="poster-genre">Action · Drama</span>
+              </div>
+            </div>
+          </div>
+          <!-- Card 2: Hindi -->
+          <div class="card c2">
+            <div class="card-face">
+              <div class="poster-art">✨</div>
+              <div class="poster-tag">✨ Bollywood</div>
+              <div class="poster-title">Pathaan</div>
+              <div class="poster-meta">
+                <span class="poster-rating">★ 7.2</span>
+                <span class="poster-genre">Thriller</span>
+              </div>
+            </div>
+          </div>
+          <!-- Card 3: Global -->
+          <div class="card c3">
+            <div class="card-face">
+              <div class="poster-art">🌍</div>
+              <div class="poster-tag">🌍 Global</div>
+              <div class="poster-title">Interstellar</div>
+              <div class="poster-meta">
+                <span class="poster-rating">★ 8.7</span>
+                <span class="poster-genre">Sci-Fi</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Floor glow -->
+      <div class="floor-glow"></div>
     </div>
-    <div class="genre-row-placeholder"></div>
-  </div>
-</div>
-""", unsafe_allow_html=True)
+    <script>
+    // Generate stars
+    const sc = document.getElementById('stars');
+    for(let i=0;i<55;i++){
+      const s=document.createElement('div');
+      s.className='star';
+      const sz=Math.random()*2.5+0.5;
+      s.style.cssText=`width:${sz}px;height:${sz}px;top:${Math.random()*100}%;left:${Math.random()*100}%;--d:${2+Math.random()*4}s;--op:${0.4+Math.random()*0.6};animation-delay:${Math.random()*4}s;`;
+      sc.appendChild(s);
+    }
+    // Mouse parallax on the scene
+    const cards=document.getElementById('cards');
+    document.addEventListener('mousemove',e=>{
+      const x=(e.clientX/window.innerWidth-0.5)*18;
+      const y=(e.clientY/window.innerHeight-0.5)*-10;
+      cards.style.transform=`rotateX(${10+y}deg) rotateY(${x}deg)`;
+    });
+    </script>
+    </body></html>
+    """, height=530, scrolling=False)
+
 
 # ── GENRE NAV CARDS using native st.page_link (100% reliable routing) ─────────
 st.markdown("""<style>

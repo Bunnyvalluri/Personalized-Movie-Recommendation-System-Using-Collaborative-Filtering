@@ -190,11 +190,15 @@ def render_movie_cards(titles, years, ratings, ids, details_list, selected_movie
 
 def render_section(movie_list, selected_movie=""):
     if not movie_list: return
+    import concurrent.futures
     names   = [m.get("title","Unknown") for m in movie_list]
     years   = [safe_year(m.get("release_date","")) for m in movie_list]
     ratings = [safe_rating(m.get("vote_average",0)) for m in movie_list]
     ids     = [str(m["id"]) for m in movie_list]
-    details = [details_from_discover(m) for m in movie_list]
+    
+    with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
+        details = list(executor.map(details_from_discover, movie_list))
+        
     render_movie_cards(names, years, ratings, ids, details, selected_movie)
 
 

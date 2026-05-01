@@ -215,13 +215,29 @@ def get_genre_map() -> dict:
 def details_from_discover(movie: dict) -> dict:
     gmap = get_genre_map()
     poster = movie.get("poster_path")
+    title = movie.get("title","")
+    year = (movie.get("release_date","") or "")[:4]
+    
+    # Fallback: if poster is missing, try a quick title search
+    if not poster and title:
+        from urllib.parse import quote as _q
+        yr = f"&year={year}" if year else ""
+        sr = tmdb_get(f"search/movie?query={_q(title)}&language=en-US{yr}&page=1")
+        for hit in (sr.get("results") or [])[:5]:
+            if hit.get("poster_path"):
+                poster = hit["poster_path"]
+                # Also steal overview if ours is empty
+                if not movie.get("overview") and hit.get("overview"):
+                    movie["overview"] = hit["overview"]
+                break
+
     genres = " • ".join(gmap.get(gid,"") for gid in (movie.get("genre_ids") or [])[:2] if gmap.get(gid))
     ov = movie.get("overview","") or ""
     return {
         "poster":   f"https://media.themoviedb.org/t/p/w342{poster}" if poster
                     else "https://placehold.co/500x750/1a1a2e/e50914?text=No+Poster",
-        "trailer":  None, "genres": genres, "title": movie.get("title",""),
-        "year":     (movie.get("release_date","") or "")[:4],
+        "trailer":  None, "genres": genres, "title": title,
+        "year":     year,
         "overview": (ov[:110]+"...") if len(ov)>110 else ov,
         "runtime":  "", "rating": f"{movie.get('vote_average',0):.1f}",
     }

@@ -1189,66 +1189,98 @@ div[data-baseweb="select"] > div:focus-within, div[data-baseweb="select"] > div:
     .hero-overview { -webkit-line-clamp: 2; }
 }
 
-/* ── CATEGORY PILL TAB BAR (st.radio) ── */
-div[data-testid="stRadio"] {
-    background: rgba(14,14,20,0.7);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(255,255,255,0.07);
-    border-radius: 60px;
-    padding: 6px 10px;
-    display: flex;
-    justify-content: center;
-    margin: 0 auto 32px;
-    max-width: fit-content;
-    box-shadow: 0 4px 24px rgba(0,0,0,0.5);
-}
-div[data-testid="stRadio"] > label {
-    display: none !important;
-}
-div[data-testid="stRadio"] [data-testid="stRadioGroup"] {
-    display: flex;
-    flex-direction: row !important;
-    flex-wrap: wrap;
-    gap: 4px;
-    justify-content: center;
-}
-div[data-testid="stRadio"] label[data-baseweb="radio"] {
-    background: transparent;
-    border: none;
-    padding: 8px 18px;
-    border-radius: 50px;
-    cursor: pointer;
-    transition: all 0.25s ease;
-    font-family: 'Outfit', sans-serif;
-    font-weight: 700;
-    font-size: 13px;
-    color: #888;
-    white-space: nowrap;
+/* ── NATIVE TABS — base reset ── */
+div[data-testid="stTabs"] button[data-baseweb="tab"] {
+    font-family: 'Outfit', sans-serif !important;
+    font-weight: 700 !important;
+    font-size: 13px !important;
+    padding: 10px 20px !important;
+    border-radius: 50px 50px 0 0 !important;
+    transition: all 0.25s ease !important;
+    color: #888 !important;
+    border-bottom: 2px solid transparent !important;
+    white-space: nowrap !important;
     letter-spacing: 0.3px;
 }
-div[data-testid="stRadio"] label[data-baseweb="radio"]:hover {
-    background: rgba(229,9,20,0.12);
-    color: #fff;
+div[data-testid="stTabsTabList"] {
+    border-bottom: 1px solid rgba(255,255,255,0.08) !important;
+    gap: 4px !important;
+    flex-wrap: wrap !important;
+    padding-bottom: 0 !important;
 }
-div[data-testid="stRadio"] label[data-baseweb="radio"][aria-checked="true"] {
-    background: linear-gradient(135deg, #e50914, #a30008);
-    color: #fff !important;
-    box-shadow: 0 4px 16px rgba(229,9,20,0.4);
+/* ── TELUGU TABS — orange / saffron theme ── */
+.te-section div[data-testid="stTabs"] button[data-baseweb="tab"]:hover {
+    color: #ff8c00 !important;
+    background: rgba(255,140,0,0.08) !important;
 }
-/* Hide the actual radio circle dot */
-div[data-testid="stRadio"] label[data-baseweb="radio"] > div:first-child {
-    display: none !important;
+.te-section div[data-testid="stTabs"] button[data-baseweb="tab"][aria-selected="true"] {
+    color: #ff8c00 !important;
+    border-bottom: 2px solid #ff8c00 !important;
+    background: rgba(255,140,0,0.1) !important;
+}
+/* ── HINDI TABS — royal blue theme ── */
+.hi-section div[data-testid="stTabs"] button[data-baseweb="tab"]:hover {
+    color: #4da6ff !important;
+    background: rgba(77,166,255,0.08) !important;
+}
+.hi-section div[data-testid="stTabs"] button[data-baseweb="tab"][aria-selected="true"] {
+    color: #4da6ff !important;
+    border-bottom: 2px solid #4da6ff !important;
+    background: rgba(77,166,255,0.1) !important;
+}
+/* Section wrapper dividers */
+.cinema-section {
+    border-radius: 20px;
+    padding: 24px 0 8px;
+    margin-bottom: 20px;
+}
+.te-header {
+    display: flex; align-items: center; gap: 14px;
+    padding: 18px 24px;
+    background: linear-gradient(135deg, rgba(255,140,0,0.12) 0%, rgba(255,60,0,0.06) 100%);
+    border: 1px solid rgba(255,140,0,0.25);
+    border-radius: 18px;
+    margin-bottom: 20px;
+}
+.te-header .flag { font-size: 2rem; }
+.te-header .label {
+    font-size: 1.4rem; font-weight: 900;
+    background: linear-gradient(135deg, #ff8c00, #ff4500);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    font-family: 'Outfit', sans-serif;
+}
+.te-header .tag {
+    margin-left: auto; font-size: 0.7rem; font-weight: 700;
+    padding: 5px 14px; border-radius: 20px; letter-spacing: 1.5px;
+    background: rgba(255,140,0,0.15); color: #ff8c00;
+    border: 1px solid rgba(255,140,0,0.3);
+}
+.hi-header {
+    display: flex; align-items: center; gap: 14px;
+    padding: 18px 24px;
+    background: linear-gradient(135deg, rgba(77,166,255,0.12) 0%, rgba(0,100,255,0.06) 100%);
+    border: 1px solid rgba(77,166,255,0.25);
+    border-radius: 18px;
+    margin-bottom: 20px;
+}
+.hi-header .flag { font-size: 2rem; }
+.hi-header .label {
+    font-size: 1.4rem; font-weight: 900;
+    background: linear-gradient(135deg, #4da6ff, #0066ff);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    font-family: 'Outfit', sans-serif;
+}
+.hi-header .tag {
+    margin-left: auto; font-size: 0.7rem; font-weight: 700;
+    padding: 5px 14px; border-radius: 20px; letter-spacing: 1.5px;
+    background: rgba(77,166,255,0.15); color: #4da6ff;
+    border: 1px solid rgba(77,166,255,0.3);
 }
 @media (max-width: 768px) {
-    div[data-testid="stRadio"] {
-        border-radius: 20px;
-        padding: 6px;
-        max-width: 100%;
+    div[data-testid="stTabs"] button[data-baseweb="tab"] {
+        font-size: 11px !important; padding: 8px 12px !important;
     }
-    div[data-testid="stRadio"] label[data-baseweb="radio"] {
-        padding: 7px 12px;
-        font-size: 11px;
-    }
+    .te-header .label, .hi-header .label { font-size: 1.1rem; }
 }
 </style>
 """, unsafe_allow_html=True)

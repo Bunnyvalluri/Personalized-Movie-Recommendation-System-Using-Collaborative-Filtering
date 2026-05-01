@@ -16,9 +16,9 @@ st.set_page_config(
 # ── NAVIGATION INTERCEPT ──────────────────────────────────────────────────────
 nav_target = st.query_params.get("nav")
 if nav_target == "telugu":
-    st.switch_page("pages/Telugu_Cinema.py")
+    st.switch_page("pages/telugu_cinema.py")
 elif nav_target == "hindi":
-    st.switch_page("pages/Hindi_Cinema.py")
+    st.switch_page("pages/hindi_cinema.py")
 
 # ── INTERNAL PLAYER ROUTE ─────────────────────────────────────────────────────
 if "watch" in st.query_params:

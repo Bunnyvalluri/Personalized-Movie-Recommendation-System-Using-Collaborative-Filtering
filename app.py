@@ -1,197 +1,378 @@
-import pickle
 import streamlit as st
 import requests
 import pandas as pd
+import numpy as np
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 import concurrent.futures
 import os
+import time
+import threading
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
-# Configure requests session with minimal retries to fail fast
+# ══════════════════════════════════════════════════════════════════════════════
+#  BACKEND LAYER 1 — Production HTTP Session
+#  Connection pool stays alive across Streamlit reruns (keep-alive sockets).
+#  Retry only on transient server errors, not on client/auth errors.
+# ══════════════════════════════════════════════════════════════════════════════
+_retry_strategy = Retry(
+    total=2,
+    backoff_factor=0.3,
+    status_forcelist=[429, 500, 502, 503, 504],
+    allowed_methods=["GET"],
+    raise_on_status=False,
+)
+_adapter = HTTPAdapter(
+    max_retries=_retry_strategy,
+    pool_connections=10,
+    pool_maxsize=20,
+    pool_block=False,
+)
 session = requests.Session()
-retries = Retry(total=1, backoff_factor=0.1)
-session.mount('https://', HTTPAdapter(max_retries=retries))
+session.mount("https://", _adapter)
+session.mount("http://",  _adapter)
 
-# ─── SPEED: cache all TMDB calls so repeat visits are instant ────────────────
-# fetch_movie_details is cached per movie_id for 1 hour
-# fetch_trending is cached for 30 minutes
-TMDB_CACHE_TTL   = 3600   # 1 hour for movie details
-TRENDING_TTL     = 1800   # 30 minutes for trending list
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+    "Accept": "application/json",
+    "Accept-Encoding": "gzip, deflate",
+    "Connection": "keep-alive",
+}
 
+# ══════════════════════════════════════════════════════════════════════════════
+#  BACKEND LAYER 2 — Two-Level Cache
+#  L1: in-process dict (survives Streamlit reruns, zero serialisation overhead)
+#  L2: st.cache_data (survives across user sessions on the same worker)
+# ══════════════════════════════════════════════════════════════════════════════
+_L1: dict        = {}
+_L1_LOCK         = threading.Lock()
+_L1_TTL          = 3600          # 1 hour
+TMDB_CACHE_TTL   = 3600
+TRENDING_TTL     = 1800
 
-# ─── SECURITY: Load API key securely ─────────────────────────────────────────
+def _l1_get(key: str):
+    with _L1_LOCK:
+        e = _L1.get(key)
+        if e and (time.time() - e["ts"]) < _L1_TTL:
+            return e["val"]
+    return None
+
+def _l1_set(key: str, val):
+    with _L1_LOCK:
+        _L1[key] = {"val": val, "ts": time.time()}
+        if len(_L1) > 2000:                          # memory guard: evict LRU
+            oldest = sorted(_L1, key=lambda k: _L1[k]["ts"])[:200]
+            for k in oldest:
+                del _L1[k]
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  BACKEND LAYER 3 — Circuit Breaker
+#  Tracks failures per TMDB endpoint. After 3 consecutive failures it opens the
+#  circuit (skips that endpoint) for 60 s, then half-opens to probe again.
+#  Prevents the app from hanging on a dead mirror for every user request.
+# ══════════════════════════════════════════════════════════════════════════════
+class CircuitBreaker:
+    THRESHOLD  = 3     # failures before opening
+    COOLDOWN   = 60    # seconds to stay open
+
+    def __init__(self):
+        self._state  = {}   # endpoint -> {fails, opened_at}
+        self._lock   = threading.Lock()
+
+    def is_open(self, endpoint: str) -> bool:
+        with self._lock:
+            s = self._state.get(endpoint)
+            if not s:
+                return False
+            if s["fails"] >= self.THRESHOLD:
+                if time.time() - s["opened_at"] < self.COOLDOWN:
+                    return True            # still open — skip this endpoint
+                s["fails"] = 0            # half-open: reset and try again
+            return False
+
+    def record_failure(self, endpoint: str):
+        with self._lock:
+            s = self._state.setdefault(endpoint, {"fails": 0, "opened_at": 0})
+            s["fails"] += 1
+            s["opened_at"] = time.time()
+
+    def record_success(self, endpoint: str):
+        with self._lock:
+            self._state.pop(endpoint, None)
+
+_cb = CircuitBreaker()
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  BACKEND LAYER 4 — Request Deduplication
+#  If 40 threads all request the same movie_id simultaneously (e.g. on first
+#  load), only 1 HTTP call is made; the other 39 wait and share the result.
+#  Eliminates thundering-herd on cold start.
+# ══════════════════════════════════════════════════════════════════════════════
+_IN_FLIGHT: dict      = {}
+_IN_FLIGHT_LOCK       = threading.Lock()
+
+def _dedup_get(key: str, fetch_fn):
+    """Call fetch_fn() once even if many threads ask for the same key."""
+    # Fast path: L1 cache hit
+    cached = _l1_get(key)
+    if cached is not None:
+        return cached
+
+    with _IN_FLIGHT_LOCK:
+        if key not in _IN_FLIGHT:
+            _IN_FLIGHT[key] = threading.Event()
+            leader = True
+        else:
+            event  = _IN_FLIGHT[key]
+            leader = False
+
+    if leader:
+        try:
+            result = fetch_fn()
+            if result:
+                _l1_set(key, result)
+            return result
+        finally:
+            with _IN_FLIGHT_LOCK:
+                ev = _IN_FLIGHT.pop(key, None)
+            if ev:
+                ev.set()
+    else:
+        event.wait(timeout=8)
+        return _l1_get(key) or {}
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  BACKEND LAYER 5 — Security: API key
+# ══════════════════════════════════════════════════════════════════════════════
 try:
     TMDB_KEY = st.secrets["TMDB_KEY"]
 except (KeyError, FileNotFoundError):
-    # Fallback to env var or hardcoded for demo purposes only
     TMDB_KEY = os.environ.get("TMDB_KEY", "8265bd1679663a7ea12ac168da84d2e8")
 
-HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
-
-
-def tmdb_get(path):
-    """Fetch a TMDB API path, intelligently routing via direct or proxy."""
+# ══════════════════════════════════════════════════════════════════════════════
+#  CORE API CALL — tmdb_get
+#  Endpoint priority: mirror → direct → proxy
+#  Each endpoint is independently circuit-broken.
+# ══════════════════════════════════════════════════════════════════════════════
+def tmdb_get(path: str) -> dict:
+    """Fetch TMDB path with L1 cache + dedup + circuit breaker."""
     from urllib.parse import quote
-    mirror = f"https://api.tmdb.org/3/{path}&api_key={TMDB_KEY}"
-    direct = f"https://api.themoviedb.org/3/{path}&api_key={TMDB_KEY}"
-    proxy = f"https://api.codetabs.com/v1/proxy?quest={quote(direct, safe='')}"
 
-    # 1. Try Mirror first (bypasses ISP blocks and connection throttling)
-    try:
-        r = session.get(mirror, headers=HEADERS, timeout=3.5)
-        if r.status_code == 200:
-            return r.json()
-    except Exception:
-        pass
+    def _fetch():
+        mirror = f"https://api.tmdb.org/3/{path}&api_key={TMDB_KEY}"
+        direct = f"https://api.themoviedb.org/3/{path}&api_key={TMDB_KEY}"
+        proxy  = f"https://api.codetabs.com/v1/proxy?quest={quote(direct, safe='')}"
 
-    # 2. Try Direct
-    try:
-        r = session.get(direct, headers=HEADERS, timeout=3.5)
-        if r.status_code == 200:
-            return r.json()
-    except Exception:
-        pass
+        for label, url, timeout in [
+            ("mirror", mirror, 4),
+            ("direct", direct, 4),
+            ("proxy",  proxy,  7),
+        ]:
+            if _cb.is_open(label):
+                continue
+            try:
+                r = session.get(url, headers=HEADERS, timeout=timeout)
+                if r.status_code == 200:
+                    data = r.json()
+                    if data and not data.get("error"):
+                        _cb.record_success(label)
+                        return data
+                _cb.record_failure(label)
+            except Exception:
+                _cb.record_failure(label)
+        return {}
 
-    # 3. Fallback to Proxy
-    try:
-        r = session.get(proxy, headers=HEADERS, timeout=6)
-        if r.status_code == 200:
-            data = r.json()
-            if data and not data.get('error'):
-                return data
-    except Exception:
-        pass
-
-    return {}
+    return _dedup_get(path, _fetch)
 
 
-
+# ══════════════════════════════════════════════════════════════════════════════
+#  MOVIE DETAIL FETCHER  (L2 cache via st.cache_data)
+#  Stage 1: direct movie/{id} lookup with videos appended
+#  Stage 2: title-search fallback if poster_path is missing (old regional films)
+# ══════════════════════════════════════════════════════════════════════════════
 @st.cache_data(ttl=TMDB_CACHE_TTL, show_spinner=False)
-def fetch_movie_details(movie_id):
-    """Fetches poster, trailer, overview, and genres from TMDB API.
-    Result is cached per movie_id for 1 hour — repeat visits are instant.
-    """
+def fetch_movie_details(movie_id: str) -> dict:
     details = {
-        'poster': "https://placehold.co/500x750/333/FFFFFF?text=No+Poster",
-        'trailer': None,
-        'overview': "No plot summary available.",
-        'genres': ""
+        "poster":   None,
+        "trailer":  None,
+        "overview": "No plot summary available.",
+        "genres":   "",
+        "title":    "",
+        "year":     "",
+        "runtime":  "",
+        "rating":   "",
     }
 
     data = tmdb_get(f"movie/{movie_id}?language=en-US&append_to_response=videos")
     if not data:
+        details["poster"] = "https://placehold.co/500x750/1a1a2e/e50914?text=No+Poster"
         return details
 
-    if data.get('poster_path'):
-        # w342 is ~40% smaller than w500 — loads faster at card size
-        details['poster'] = "https://media.themoviedb.org/t/p/w342" + data['poster_path']
-    if data.get('overview'):
-        overview = data['overview']
-        details['overview'] = overview[:110] + '...' if len(overview) > 110 else overview
-    if data.get('genres'):
-        details['genres'] = " • ".join([g['name'] for g in data['genres'][:2]])
-    if 'videos' in data and isinstance(data['videos'], dict):
-        for video in data['videos'].get('results', []):
-            if video.get('site') == 'YouTube' and video.get('type') == 'Trailer':
-                details['trailer'] = f"https://www.youtube.com/watch?v={video['key']}"
+    details["title"]   = data.get("title", "")
+    details["year"]    = (data.get("release_date", "") or "")[:4]
+    details["rating"]  = f"{data.get('vote_average', 0):.1f}"
+    rt = data.get("runtime") or 0
+    if rt:
+        details["runtime"] = f"{rt // 60}h {rt % 60}m"
+
+    if data.get("poster_path"):
+        details["poster"] = "https://media.themoviedb.org/t/p/w342" + data["poster_path"]
+
+    if data.get("overview"):
+        ov = data["overview"]
+        details["overview"] = ov[:110] + "..." if len(ov) > 110 else ov
+
+    if data.get("genres"):
+        details["genres"] = " • ".join(g["name"] for g in data["genres"][:2])
+
+    if isinstance(data.get("videos"), dict):
+        for v in data["videos"].get("results", []):
+            if v.get("site") == "YouTube" and v.get("type") == "Trailer":
+                details["trailer"] = f"https://www.youtube.com/watch?v={v['key']}"
                 break
+
+    # Stage 2: poster fallback via title search (common for old Telugu/Hindi films)
+    if not details["poster"] and details["title"]:
+        from urllib.parse import quote as _q
+        yr  = f"&year={details['year']}" if details["year"] else ""
+        sr  = tmdb_get(f"search/movie?query={_q(details['title'])}&language=en-US{yr}&page=1")
+        for hit in (sr.get("results") or [])[:5]:
+            if hit.get("poster_path"):
+                details["poster"] = "https://media.themoviedb.org/t/p/w342" + hit["poster_path"]
+                if details["overview"] == "No plot summary available." and hit.get("overview"):
+                    ov = hit["overview"]
+                    details["overview"] = ov[:110] + "..." if len(ov) > 110 else ov
+                break
+
+    if not details["poster"]:
+        details["poster"] = "https://placehold.co/500x750/1a1a2e/e50914?text=No+Poster"
 
     return details
 
 
+# ══════════════════════════════════════════════════════════════════════════════
+#  REGIONAL MOVIE FETCHER  (shared helper for Telugu & Hindi)
+#  All 8 queries fire in parallel via ThreadPoolExecutor.
+#  Dedup prevents re-fetching the same movie across tabs.
+# ══════════════════════════════════════════════════════════════════════════════
+def _fetch_regional(lang: str, genre_label: str) -> dict:
+    """Generic fetcher for any regional language cinema. Returns {tab: [movies]}."""
+    queries = {
+        "🔥 Popular":     f"discover/movie?with_original_language={lang}&sort_by=popularity.desc&page=1",
+        "🔥 Popular 2":   f"discover/movie?with_original_language={lang}&sort_by=popularity.desc&page=2",
+        "⭐ Top Rated":   f"discover/movie?with_original_language={lang}&sort_by=vote_average.desc&vote_count.gte=300",
+        "🆕 Latest":      f"discover/movie?with_original_language={lang}&sort_by=release_date.desc&primary_release_date.gte=2024-01-01&vote_count.gte=10",
+        "🏆 Classics":    f"discover/movie?with_original_language={lang}&sort_by=vote_count.desc&primary_release_date.gte=2015-01-01&primary_release_date.lte=2023-12-31",
+        "📼 Old Classics": f"discover/movie?with_original_language={lang}&sort_by=vote_count.desc&primary_release_date.lte=2014-12-31",
+        "💥 Action":      f"discover/movie?with_original_language={lang}&with_genres=28&sort_by=popularity.desc&page=1",
+        genre_label:      f"discover/movie?with_original_language={lang}&with_genres={'18' if lang == 'te' else '35'}&sort_by=vote_average.desc&vote_count.gte=200",
+    }
+    with concurrent.futures.ThreadPoolExecutor(max_workers=8) as ex:
+        results = list(ex.map(tmdb_get, queries.values()))
+
+    grouped, all_seen = {}, set()
+    for key, data in zip(queries.keys(), results):
+        movies = []
+        for m in (data.get("results", [])[:20] if data else []):
+            if m["id"] not in all_seen:
+                movies.append(m)
+                all_seen.add(m["id"])
+        grouped[key] = movies
+
+    # Merge Popular page 2 into Popular
+    p2 = grouped.pop("🔥 Popular 2", [])
+    grouped["🔥 Popular"] = grouped.get("🔥 Popular", []) + p2
+    return grouped
+
+
 @st.cache_data(ttl=TRENDING_TTL, show_spinner=False)
 def fetch_trending():
-    """Fetches the top 10 trending movies of the week. Cached for 30 minutes."""
     data = tmdb_get("trending/movie/week?")
-    return data.get('results', [])[:10] if data else []
+    return data.get("results", [])[:10] if data else []
 
 @st.cache_data(ttl=TRENDING_TTL, show_spinner=False)
 def fetch_telugu_movies():
-    """Fetches a rich mix of Telugu movies in parallel: popular, top-rated, new & classics."""
-    urls = [
-        "discover/movie?with_original_language=te&sort_by=popularity.desc&page=1",
-        "discover/movie?with_original_language=te&sort_by=vote_average.desc&vote_count.gte=500",
-        "discover/movie?with_original_language=te&sort_by=release_date.desc&primary_release_date.gte=2024-01-01&vote_count.gte=20",
-        "discover/movie?with_original_language=te&sort_by=vote_count.desc",
-    ]
-    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as ex:
-        results = list(ex.map(tmdb_get, urls))
-    combined, seen = [], set()
-    for data in results:
-        for m in (data.get('results', [])[:6] if data else []):
-            if m['id'] not in seen:
-                combined.append(m)
-                seen.add(m['id'])
-    return combined[:20]
+    return _fetch_regional("te", "🎭 Drama")
 
 @st.cache_data(ttl=TRENDING_TTL, show_spinner=False)
 def fetch_hindi_movies():
-    """Fetches a rich mix of Hindi movies in parallel: popular, top-rated, new & classics."""
-    urls = [
-        "discover/movie?with_original_language=hi&sort_by=popularity.desc&page=1",
-        "discover/movie?with_original_language=hi&sort_by=vote_average.desc&vote_count.gte=500",
-        "discover/movie?with_original_language=hi&sort_by=release_date.desc&primary_release_date.gte=2024-01-01&vote_count.gte=20",
-        "discover/movie?with_original_language=hi&sort_by=vote_count.desc",
-    ]
-    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as ex:
-        results = list(ex.map(tmdb_get, urls))
-    combined, seen = [], set()
-    for data in results:
-        for m in (data.get('results', [])[:6] if data else []):
-            if m['id'] not in seen:
-                combined.append(m)
-                seen.add(m['id'])
-    return combined[:20]
+    return _fetch_regional("hi", "😂 Comedy")
 
 
+# ══════════════════════════════════════════════════════════════════════════════
+#  BACKGROUND PRE-WARMER
+#  After the user selects a tab, immediately start fetching the NEXT tab's
+#  poster details in the background so it appears instant when they click it.
+# ══════════════════════════════════════════════════════════════════════════════
+def _prewarm(movie_list: list):
+    """Fire-and-forget: fetch details for movie_list in a background daemon thread."""
+    def _worker():
+        ids = [str(m["id"]) for m in movie_list]
+        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as ex:
+            list(ex.map(fetch_movie_details, ids))   # results go into L1 + st.cache_data
+    t = threading.Thread(target=_worker, daemon=True)
+    t.start()
 
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  RECOMMENDATION ENGINE  (optimised)
+#  Uses numpy argpartition O(n) instead of full sort O(n log n).
+#  Scores candidates as  0.7 * similarity + 0.3 * normalised_rating
+#  so highly-rated movies rank above barely-similar low-quality ones.
+# ══════════════════════════════════════════════════════════════════════════════
 def safe_year(val):
-    """Safely extract a 4-digit year string from any value."""
     try:
         s = str(val).strip()
         return s[:4] if len(s) >= 4 else s
     except Exception:
-        return 'N/A'
-
+        return "N/A"
 
 def safe_rating(val):
-    """Safely format a rating to one decimal place."""
     try:
         return f"{float(val):.1f}"
     except Exception:
-        return 'N/A'
+        return "N/A"
 
-
-def recommend(movie):
-    """Recommends 5 similar movies based on the selected movie."""
+def recommend(movie: str, top_n: int = 5):
+    """Return top_n recommendations weighted by similarity × rating."""
     try:
-        index = movies[movies['title'] == movie].index[0]
+        idx = movies[movies["title"] == movie].index[0]
     except (IndexError, KeyError):
-        st.error("Movie not found in the dataset. Please select another one.")
+        st.error("Movie not found. Please select another title.")
         return [], [], [], [], []
 
-    distances = sorted(list(enumerate(similarity[index])), reverse=True, key=lambda x: x[1])
+    sims = similarity[idx].copy()
+    sims[idx] = 0   # exclude the query movie itself
 
-    top_indices = [i[0] for i in distances[1:6]]
-    movie_ids = [str(movies.iloc[idx].movie_id) for idx in top_indices]
+    # Normalise vote_average to [0, 1] for the entire corpus
+    raw_ratings = pd.to_numeric(movies.get("vote_average", pd.Series(dtype=float)), errors="coerce").fillna(0).values
+    max_r = raw_ratings.max() or 1.0
+    norm_r = raw_ratings / max_r
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+    # Combined score: 70% similarity + 30% quality
+    scores = 0.7 * sims + 0.3 * norm_r
+
+    # O(n) partial sort — much faster than full argsort on 5000-movie corpus
+    k = min(top_n, len(scores) - 1)
+    top_indices = np.argpartition(scores, -k)[-k:]
+    top_indices = top_indices[np.argsort(scores[top_indices])[::-1]]   # sort the small k subset
+
+    movie_ids = [str(movies.iloc[i].movie_id) for i in top_indices]
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=top_n) as executor:
         details_list = list(executor.map(fetch_movie_details, movie_ids))
 
     names, years, ratings = [], [], []
-    for idx in top_indices:
-        row = movies.iloc[idx]
-        names.append(row.get('title', 'Unknown') if hasattr(row, 'get') else str(row['title']))
-        # year column may be named differently
-        year_val = row.get('year', row.get('release_date', 'N/A')) if hasattr(row, 'get') else 'N/A'
+    for i in top_indices:
+        row = movies.iloc[i]
+        names.append(str(row.get("title", "Unknown") if hasattr(row, "get") else row["title"]))
+        year_val = row.get("year", row.get("release_date", "N/A")) if hasattr(row, "get") else "N/A"
         years.append(safe_year(year_val))
-        rating_val = row.get('vote_average', 0) if hasattr(row, 'get') else 0
+        rating_val = row.get("vote_average", 0) if hasattr(row, "get") else 0
         ratings.append(safe_rating(rating_val))
 
     return names, years, ratings, movie_ids, details_list
-
 
 # ─── PAGE CONFIG ──────────────────────────────────────────────────────────────
 st.set_page_config(layout="wide", page_title="iBOMMA Rahul - Watch")
@@ -256,6 +437,11 @@ body {{
 .p-icon {{ width:38px; height:38px; background:#e50914; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:15px; box-shadow:0 0 18px rgba(229,9,20,0.5); flex-shrink:0; }}
 .p-mname {{ font-size:1.2rem; font-weight:700; }}
 .p-mname span {{ color:#e50914; }}
+.p-chips {{ display:flex; align-items:center; gap:8px; padding:10px 28px; background:rgba(255,255,255,0.015); border-bottom:1px solid rgba(255,255,255,0.05); flex-wrap:wrap; }}
+.p-chip {{ font-size:11px; font-weight:700; padding:4px 13px; border-radius:20px; letter-spacing:0.5px; }}
+.p-chip.gold {{ color:#f5c518; background:rgba(245,197,24,0.1); border:1px solid rgba(245,197,24,0.3); }}
+.p-chip.grey {{ color:#888; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); }}
+.p-chip.green {{ color:#22c55e; background:rgba(34,197,94,0.08); border:1px solid rgba(34,197,94,0.25); }}
 .p-srv {{ display:flex; align-items:center; gap:8px; padding:12px 28px; background:rgba(255,255,255,0.02); border-bottom:1px solid rgba(255,255,255,0.06); flex-wrap:wrap; }}
 .p-srv-label {{ color:#555; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:1px; margin-right:4px; }}
 .srv-btn {{ padding:6px 16px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.05); color:#bbb; cursor:pointer; font-size:13px; font-weight:600; transition:all 0.25s; font-family:'Outfit',sans-serif; }}
@@ -305,6 +491,12 @@ body {{
 <div class="p-strip">
     <div class="p-icon">&#9654;</div>
     <div class="p-mname">Now Playing: <span id="mtitle">{movie_title_esc}</span></div>
+</div>
+<div class="p-chips">
+    <span class="p-chip gold">&#11088; Loading…</span>
+    <span class="p-chip grey">&#127909; HD Stream</span>
+    <span class="p-chip green">&#128737; Ads Blocked</span>
+    <span class="p-chip grey">&#9000; F = Fullscreen</span>
 </div>
 <div class="p-srv">
     <span class="p-srv-label">Server:</span>
@@ -708,15 +900,16 @@ div[data-baseweb="select"] > div:focus-within, div[data-baseweb="select"] > div:
 .rating-badge {
     position: absolute;
     top: 10px; right: 10px;
-    background: rgba(0,0,0,0.72);
+    background: linear-gradient(135deg, rgba(245,197,24,0.18), rgba(0,0,0,0.75));
     backdrop-filter: blur(8px);
-    border: 1px solid rgba(229,9,20,0.4);
+    border: 1px solid rgba(245,197,24,0.5);
     border-radius: 7px;
-    padding: 3px 8px;
+    padding: 3px 10px;
     font-size: 11px;
-    font-weight: 700;
-    color: #fff;
+    font-weight: 800;
+    color: #f5c518;
     z-index: 3;
+    text-shadow: 0 0 8px rgba(245,197,24,0.5);
 }
 
 /* ── CARD INFO ── */
@@ -843,11 +1036,219 @@ div[data-baseweb="select"] > div:focus-within, div[data-baseweb="select"] > div:
     .main-nav { padding: 15px 20px; margin-bottom: 20px; }
     .nav-tagline { display: none; }
     .nav-logo { font-size: 1.6rem; letter-spacing: 3px; }
-    .movie-row { padding: 10px 20px 40px; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; }
-    .movie-poster { height: 260px; }
-    .movie-title { font-size: 15px; }
-    .btn-group { flex-direction: column; }
+    .movie-row { padding: 10px 12px 40px; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .movie-poster { height: 220px; }
+    .movie-title { font-size: 13px; }
+    .movie-overview { display: none; }
+    .btn-group { flex-direction: column; gap: 6px; }
+    .watch-btn, .trailer-btn { padding: 9px 6px; font-size: 12px; }
     .stButton>button { width: 100%; padding: 14px 20px !important; font-size: 1rem !important; }
+}
+@media (max-width: 480px) {
+    .movie-row { grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 6px 10px 30px; }
+    .movie-poster { height: 190px; }
+    .genre-tag { display: none; }
+}
+
+/* ── SKELETON LOADER ── */
+@keyframes skeleton-shimmer {
+    0% { background-position: -800px 0; }
+    100% { background-position: 800px 0; }
+}
+.skeleton-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 28px;
+    padding: 10px 40px 60px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+.skeleton-card {
+    border-radius: 24px;
+    overflow: hidden;
+    background: linear-gradient(90deg, #0e0e14 25%, #1a1a24 50%, #0e0e14 75%);
+    background-size: 800px 100%;
+    animation: skeleton-shimmer 1.6s infinite linear;
+    height: 420px;
+    border: 1px solid rgba(255,255,255,0.06);
+}
+
+/* ── HERO BANNER ── */
+@keyframes heroFade { from { opacity: 0; transform: scale(1.04); } to { opacity: 1; transform: scale(1); } }
+.hero-banner {
+    position: relative;
+    width: 100%;
+    height: 520px;
+    overflow: hidden;
+    margin-bottom: 50px;
+    animation: heroFade 1.2s ease forwards;
+}
+.hero-backdrop {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center top;
+    filter: brightness(0.35) saturate(1.2);
+    transform: scale(1.05);
+    transition: transform 8s ease;
+}
+.hero-banner:hover .hero-backdrop { transform: scale(1.0); }
+.hero-gradient {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to right, rgba(10,0,16,0.98) 0%, rgba(10,0,16,0.7) 45%, transparent 75%),
+                linear-gradient(to top, rgba(10,0,16,1) 0%, transparent 40%);
+}
+.hero-content {
+    position: relative;
+    z-index: 10;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 0 60px;
+    max-width: 700px;
+}
+.hero-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, #e50914, #a30008);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 5px 14px;
+    border-radius: 30px;
+    margin-bottom: 16px;
+    box-shadow: 0 0 20px rgba(229,9,20,0.4);
+    width: fit-content;
+}
+.hero-title {
+    font-size: clamp(2rem, 4vw, 3.5rem);
+    font-weight: 900;
+    color: #fff;
+    line-height: 1.1;
+    margin-bottom: 14px;
+    text-shadow: 0 4px 30px rgba(0,0,0,0.8);
+    letter-spacing: -1px;
+}
+.hero-meta {
+    font-size: 13px;
+    color: #f5c518;
+    font-weight: 700;
+    margin-bottom: 12px;
+    letter-spacing: 1px;
+}
+.hero-overview {
+    font-size: 14px;
+    color: #aaa;
+    line-height: 1.7;
+    margin-bottom: 28px;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.hero-buttons { display: flex; gap: 14px; flex-wrap: wrap; }
+.hero-watch-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 32px;
+    background: linear-gradient(135deg, #e50914, #a30008);
+    color: #fff !important;
+    text-decoration: none !important;
+    font-weight: 800;
+    font-size: 15px;
+    border-radius: 50px;
+    box-shadow: 0 8px 25px rgba(229,9,20,0.45);
+    transition: all 0.3s ease;
+    letter-spacing: 0.5px;
+}
+.hero-watch-btn:hover { transform: scale(1.05) translateY(-2px); box-shadow: 0 14px 35px rgba(229,9,20,0.65); }
+.hero-info-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 28px;
+    background: rgba(255,255,255,0.1);
+    backdrop-filter: blur(12px);
+    color: #fff !important;
+    text-decoration: none !important;
+    font-weight: 700;
+    font-size: 15px;
+    border-radius: 50px;
+    border: 1px solid rgba(255,255,255,0.2);
+    transition: all 0.3s ease;
+}
+.hero-info-btn:hover { background: rgba(255,255,255,0.2); border-color: rgba(255,255,255,0.4); }
+@media (max-width: 768px) {
+    .hero-banner { height: 380px; }
+    .hero-content { padding: 0 24px; max-width: 100%; }
+    .hero-title { font-size: 1.8rem; }
+    .hero-overview { -webkit-line-clamp: 2; }
+}
+
+/* ── CATEGORY PILL TAB BAR (st.radio) ── */
+div[data-testid="stRadio"] {
+    background: rgba(14,14,20,0.7);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 60px;
+    padding: 6px 10px;
+    display: flex;
+    justify-content: center;
+    margin: 0 auto 32px;
+    max-width: fit-content;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+}
+div[data-testid="stRadio"] > label {
+    display: none !important;
+}
+div[data-testid="stRadio"] [data-testid="stRadioGroup"] {
+    display: flex;
+    flex-direction: row !important;
+    flex-wrap: wrap;
+    gap: 4px;
+    justify-content: center;
+}
+div[data-testid="stRadio"] label[data-baseweb="radio"] {
+    background: transparent;
+    border: none;
+    padding: 8px 18px;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    color: #888;
+    white-space: nowrap;
+    letter-spacing: 0.3px;
+}
+div[data-testid="stRadio"] label[data-baseweb="radio"]:hover {
+    background: rgba(229,9,20,0.12);
+    color: #fff;
+}
+div[data-testid="stRadio"] label[data-baseweb="radio"][aria-checked="true"] {
+    background: linear-gradient(135deg, #e50914, #a30008);
+    color: #fff !important;
+    box-shadow: 0 4px 16px rgba(229,9,20,0.4);
+}
+/* Hide the actual radio circle dot */
+div[data-testid="stRadio"] label[data-baseweb="radio"] > div:first-child {
+    display: none !important;
+}
+@media (max-width: 768px) {
+    div[data-testid="stRadio"] {
+        border-radius: 20px;
+        padding: 6px;
+        max-width: 100%;
+    }
+    div[data-testid="stRadio"] label[data-baseweb="radio"] {
+        padding: 7px 12px;
+        font-size: 11px;
+    }
 }
 </style>
 """, unsafe_allow_html=True)
@@ -926,6 +1327,44 @@ def escape(text):
     """Safely escape text for use inside HTML attributes and content."""
     return _html.escape(str(text), quote=True)
 
+
+def render_hero_banner(movie, details):
+    """Renders a full-width cinematic hero banner from a TMDB movie object."""
+    from urllib.parse import quote as _q
+    _gh_pages_base = "https://bunnyvalluri.github.io/Personalized-Movie-Recommendation-System-Using-Collaborative-Filtering"
+    mid   = str(movie.get('id', ''))
+    title = escape(movie.get('title', 'Featured Movie'))
+    overview = escape((movie.get('overview', '') or '')[:200])
+    year  = safe_year(movie.get('release_date', ''))
+    rating = safe_rating(movie.get('vote_average', 0))
+    backdrop_path = movie.get('backdrop_path', '')
+    backdrop_url  = f"https://image.tmdb.org/t/p/w1280{backdrop_path}" if backdrop_path else ''
+    watch_url = f"{_gh_pages_base}/player.html?id={_q(mid)}&title={_q(movie.get('title',''))}&from={_q(movie.get('title',''))}"
+    trailer_url = details.get('trailer', '') if details else ''
+
+    st.markdown(f"""
+    <div class="hero-banner">
+        <div class="hero-backdrop" style="background-image: url('{backdrop_url}');"></div>
+        <div class="hero-gradient"></div>
+        <div class="hero-content">
+            <span class="hero-badge">🔥 Featured Today</span>
+            <div class="hero-title">{title}</div>
+            <div class="hero-meta">⭐ {rating} &nbsp;·&nbsp; 📅 {year}</div>
+            <div class="hero-overview">{overview}</div>
+            <div class="hero-buttons">
+                <a href="{watch_url}" target="_blank" class="hero-watch-btn">▶ Watch Now</a>
+                {'<a href="' + escape(trailer_url) + '" target="_blank" class="hero-info-btn">🎬 Trailer</a>' if trailer_url else ''}
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+
+def render_skeleton(count=5):
+    """Shows shimmer skeleton cards while content loads."""
+    cards = ''.join(['<div class="skeleton-card"></div>' for _ in range(count)])
+    st.markdown(f'<div class="skeleton-row">{cards}</div>', unsafe_allow_html=True)
+
 def render_movie_cards(titles, years, ratings, ids, details_list):
     cards_html = ""
     for i in range(len(titles)):
@@ -1002,64 +1441,93 @@ if show_recs or ("recs" in st.query_params):
         </div>
         """, unsafe_allow_html=True)
 else:
-    # On load, show curated categories — all 3 category fetches fire in parallel
-    with st.spinner('⚡ Loading iBOMMA RAHUL…'):
-        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as ex:
-            f_trending = ex.submit(fetch_trending)
-            f_telugu   = ex.submit(fetch_telugu_movies)
-            f_hindi    = ex.submit(fetch_hindi_movies)
-            trending = f_trending.result()
-            telugu   = f_telugu.result()
-            hindi    = f_hindi.result()
+    # On load, show curated categories — all 3 fetches fire in parallel
+    try:
+        with st.spinner('⚡ Loading iBOMMA RAHUL…'):
+            with concurrent.futures.ThreadPoolExecutor(max_workers=3) as ex:
+                f_trending = ex.submit(fetch_trending)
+                f_telugu   = ex.submit(fetch_telugu_movies)
+                f_hindi    = ex.submit(fetch_hindi_movies)
+                trending = f_trending.result()   # list of movies
+                telugu   = f_telugu.result()     # dict: {category -> [movies]}
+                hindi    = f_hindi.result()      # dict: {category -> [movies]}
+    except Exception as e:
+        st.error(f"❌ Failed to load movies: {e}")
+        st.stop()
 
-        all_movies = trending + telugu + hindi
-        if all_movies:
-            all_ids = [str(m['id']) for m in all_movies]
+    # Validate types — guard against stale cache returning old list format
+    if not isinstance(telugu, dict):
+        telugu = {}
+    if not isinstance(hindi, dict):
+        hindi = {}
 
-            # Fetch all poster/trailer details in parallel
-            with concurrent.futures.ThreadPoolExecutor(max_workers=40) as executor:
-                all_details = list(executor.map(fetch_movie_details, all_ids))
-            
-            # Split them back up safely
-            def extract_data(movie_list, start_idx):
-                end_idx = start_idx + len(movie_list)
-                names = [m.get('title', 'Unknown') for m in movie_list]
-                years = [safe_year(m.get('release_date', '')) for m in movie_list]
-                ratings = [safe_rating(m.get('vote_average', 0)) for m in movie_list]
-                ids = [str(m['id']) for m in movie_list]
-                details = all_details[start_idx:end_idx]
-                return names, years, ratings, ids, details
-            
-            if trending:
-                tn, ty, tr, ti, td = extract_data(trending, 0)
+    # Check if any content actually has movies
+    te_has_movies = any(v for v in telugu.values())
+    hi_has_movies = any(v for v in hindi.values())
+    has_content   = trending or te_has_movies or hi_has_movies
+
+    if not has_content:
+        st.warning("⚠️ Could not load movies right now. TMDB API may be temporarily unavailable. Please refresh the page.")
+    else:
+        # ── TRENDING: fetch details upfront for hero + section ────────────────
+        if trending:
+            try:
+                tr_ids = [str(m['id']) for m in trending]
+                with concurrent.futures.ThreadPoolExecutor(max_workers=20) as ex:
+                    tr_details = list(ex.map(fetch_movie_details, tr_ids))
+                render_hero_banner(trending[0], tr_details[0])
+                tr_names   = [m.get('title', 'Unknown') for m in trending]
+                tr_years   = [safe_year(m.get('release_date', '')) for m in trending]
+                tr_ratings = [safe_rating(m.get('vote_average', 0)) for m in trending]
                 st.markdown("<div class='section-title'>🔥 Trending This Week <span style='font-size:0.8rem; vertical-align:middle; margin-left:10px; background:rgba(229,9,20,0.1); padding:4px 12px; border-radius:20px; border:1px solid rgba(229,9,20,0.3); color:#e50914; letter-spacing:1px;'>🔴 LIVE</span></div>", unsafe_allow_html=True)
-                render_movie_cards(tn, ty, tr, ti, td)
-                
-            if telugu:
-                tn, ty, tr, ti, td = extract_data(telugu, len(trending))
-                st.markdown("""
-                <div class='section-title'>🎬 Telugu Cinema
-                  <span style='font-size:0.65rem; vertical-align:middle; margin-left:10px;
-                    background:rgba(255,165,0,0.1); padding:4px 12px; border-radius:20px;
-                    border:1px solid rgba(255,165,0,0.35); color:#ffa500; letter-spacing:1px;'>
-                    🔥 Popular &nbsp;⭐ Top Rated &nbsp;🆕 New &nbsp;🏆 Classics
-                  </span>
-                </div>""", unsafe_allow_html=True)
-                render_movie_cards(tn, ty, tr, ti, td)
+                render_movie_cards(tr_names, tr_years, tr_ratings, tr_ids, tr_details)
+            except Exception as e:
+                st.warning(f"Could not load Trending section: {e}")
 
-            if hindi:
-                tn, ty, tr, ti, td = extract_data(hindi, len(trending) + len(telugu))
-                st.markdown("""
-                <div class='section-title'>🌟 Hindi Cinema
-                  <span style='font-size:0.65rem; vertical-align:middle; margin-left:10px;
-                    background:rgba(0,180,255,0.1); padding:4px 12px; border-radius:20px;
-                    border:1px solid rgba(0,180,255,0.35); color:#00b4ff; letter-spacing:1px;'>
-                    🔥 Popular &nbsp;⭐ Top Rated &nbsp;🆕 New &nbsp;🏆 Classics
-                  </span>
-                </div>""", unsafe_allow_html=True)
-                render_movie_cards(tn, ty, tr, ti, td)
-        else:
-            st.info("Could not load movies. Please check your internet connection.")
+        # ── TELUGU CINEMA: tabbed, lazy-loaded ───────────────────────────────
+        if te_has_movies:
+            st.markdown("<div class='section-title'>🎬 Telugu Cinema</div>", unsafe_allow_html=True)
+            te_tabs = [k for k, v in telugu.items() if v]   # only show tabs that have movies
+            te_sel  = st.radio(
+                "Telugu Category", te_tabs,
+                horizontal=True, label_visibility="collapsed",
+                key="te_cat"
+            )
+            te_movies = telugu.get(te_sel, [])
+            if te_movies:
+                try:
+                    te_ids     = [str(m['id']) for m in te_movies]
+                    with concurrent.futures.ThreadPoolExecutor(max_workers=20) as ex:
+                        te_det = list(ex.map(fetch_movie_details, te_ids))
+                    te_names   = [m.get('title', 'Unknown') for m in te_movies]
+                    te_years   = [safe_year(m.get('release_date', '')) for m in te_movies]
+                    te_ratings = [safe_rating(m.get('vote_average', 0)) for m in te_movies]
+                    render_movie_cards(te_names, te_years, te_ratings, te_ids, te_det)
+                except Exception as e:
+                    st.warning(f"Could not load Telugu {te_sel}: {e}")
+
+        # ── HINDI CINEMA: tabbed, lazy-loaded ────────────────────────────────
+        if hi_has_movies:
+            st.markdown("<div class='section-title'>🌟 Hindi Cinema</div>", unsafe_allow_html=True)
+            hi_tabs = [k for k, v in hindi.items() if v]    # only show tabs that have movies
+            hi_sel  = st.radio(
+                "Hindi Category", hi_tabs,
+                horizontal=True, label_visibility="collapsed",
+                key="hi_cat"
+            )
+            hi_movies = hindi.get(hi_sel, [])
+            if hi_movies:
+                try:
+                    hi_ids     = [str(m['id']) for m in hi_movies]
+                    with concurrent.futures.ThreadPoolExecutor(max_workers=20) as ex:
+                        hi_det = list(ex.map(fetch_movie_details, hi_ids))
+                    hi_names   = [m.get('title', 'Unknown') for m in hi_movies]
+                    hi_years   = [safe_year(m.get('release_date', '')) for m in hi_movies]
+                    hi_ratings = [safe_rating(m.get('vote_average', 0)) for m in hi_movies]
+                    render_movie_cards(hi_names, hi_years, hi_ratings, hi_ids, hi_det)
+                except Exception as e:
+                    st.warning(f"Could not load Hindi {hi_sel}: {e}")
+
 
 st.markdown("""
 <div style="margin-top: 100px; padding: 80px 40px; background: rgba(0,0,0,0.5); border-top: 1px solid rgba(255,255,255,0.05); text-align: center;">

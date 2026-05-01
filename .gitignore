@@ -142,6 +142,20 @@ configs/secrets.yaml
 
 
 
+# Secrets — NEVER commit these
 .streamlit/secrets.toml
 
+# Large ML artifacts (stored in git-lfs or cloud storage)
 artifacts/*.npy
+artifacts/*.pkl
+*.pkl
+
+# Streamlit cache
+.streamlit/cache/
+__streamlit_cache__/
+
+# Temp / OS files
+*.DS_Store
+Thumbs.db
+*.tmp
+*.bak

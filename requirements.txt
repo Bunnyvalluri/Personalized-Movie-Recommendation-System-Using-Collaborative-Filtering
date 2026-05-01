@@ -1,6 +1,14 @@
-### dependency
-streamlit
-scikit-learn
+### Core Framework
+streamlit>=1.35.0
 
-### local packages -
--e . 
+### ML / Data
+scikit-learn>=1.4.0
+numpy>=1.26.0
+pandas>=2.2.0
+
+### HTTP & Networking
+requests>=2.31.0
+urllib3>=2.2.0
+
+### Local packages
+-e .

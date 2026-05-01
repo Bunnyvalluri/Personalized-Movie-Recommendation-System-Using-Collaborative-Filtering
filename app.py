@@ -253,19 +253,45 @@ st.markdown("""
       <div class="stat-pill"><span class="stat-pill-num">Free</span><span class="stat-pill-lbl">Forever</span></div>
       <div class="stat-pill"><span class="stat-pill-num">Zero</span><span class="stat-pill-lbl">Ads</span></div>
     </div>
-    <div class="genre-row">
-      <a href="/telugu_cinema" class="genre-card gc-telugu">
-        <span class="gc-icon">🌶️</span>
-        <div class="gc-info"><span class="gc-label">Telugu Cinema</span><span class="gc-sub">TOLLYWOOD · 500+ FILMS</span></div>
-      </a>
-      <a href="/hindi_cinema" class="genre-card gc-hindi">
-        <span class="gc-icon">✨</span>
-        <div class="gc-info"><span class="gc-label">Hindi Cinema</span><span class="gc-sub">BOLLYWOOD · 500+ FILMS</span></div>
-      </a>
-    </div>
+    <div class="genre-row-placeholder"></div>
   </div>
 </div>
 """, unsafe_allow_html=True)
+
+# ── GENRE NAV CARDS using native st.page_link (100% reliable routing) ─────────
+st.markdown("""<style>
+/* Style the st.page_link elements to look like premium genre cards */
+[data-testid="stPageLink-NavLink"]{
+  display:flex!important;align-items:center!important;gap:14px!important;
+  padding:18px 28px!important;border-radius:16px!important;
+  font-family:'Outfit',sans-serif!important;font-size:1rem!important;font-weight:700!important;
+  text-decoration:none!important;color:#fff!important;
+  border:none!important;width:100%!important;
+  transition:all 0.3s cubic-bezier(.175,.885,.32,1.275)!important;
+}
+[data-testid="stPageLink-NavLink"]:hover{transform:translateY(-4px)!important;}
+div[data-testid="column"]:nth-child(1) [data-testid="stPageLink-NavLink"]{
+  background:linear-gradient(135deg,rgba(229,9,20,0.92),rgba(160,5,10,0.96))!important;
+  box-shadow:0 8px 32px rgba(229,9,20,0.38)!important;
+}
+div[data-testid="column"]:nth-child(1) [data-testid="stPageLink-NavLink"]:hover{
+  box-shadow:0 16px 48px rgba(229,9,20,0.55)!important;
+}
+div[data-testid="column"]:nth-child(2) [data-testid="stPageLink-NavLink"]{
+  background:linear-gradient(135deg,rgba(100,20,180,0.92),rgba(60,10,120,0.96))!important;
+  box-shadow:0 8px 32px rgba(100,20,180,0.32)!important;
+}
+div[data-testid="column"]:nth-child(2) [data-testid="stPageLink-NavLink"]:hover{
+  box-shadow:0 16px 48px rgba(100,20,180,0.48)!important;
+}
+[data-testid="stPageLink"]{margin:0!important;}
+</style>""", unsafe_allow_html=True)
+
+gcol1, gcol2, gcol3 = st.columns([1, 1, 2])
+with gcol1:
+    st.page_link("pages/telugu_cinema.py", label="🌶️ Telugu Cinema — TOLLYWOOD · 500+ FILMS")
+with gcol2:
+    st.page_link("pages/hindi_cinema.py",  label="✨ Hindi Cinema — BOLLYWOOD · 500+ FILMS")
 
 # AI Search
 st.markdown("""

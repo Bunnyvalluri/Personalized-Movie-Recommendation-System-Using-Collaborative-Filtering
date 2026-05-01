@@ -15,17 +15,12 @@ st.set_page_config(
 
 # ── NAVIGATION INTERCEPT ──────────────────────────────────────────────────────
 nav_target = st.query_params.get("nav")
-if nav_target:
-    try:
-        if nav_target == "telugu":
-            try: st.switch_page("pages/telugu_cinema.py")
-            except: st.switch_page("pages/Telugu_Cinema.py")
-        elif nav_target == "hindi":
-            try: st.switch_page("pages/hindi_cinema.py")
-            except: st.switch_page("pages/Hindi_Cinema.py")
-    except Exception as e:
-        st.error(f"Routing error: {e}")
-        st.stop()
+if nav_target == "telugu":
+    st.markdown('<meta http-equiv="refresh" content="0; url=/telugu_cinema">', unsafe_allow_html=True)
+    st.stop()
+elif nav_target == "hindi":
+    st.markdown('<meta http-equiv="refresh" content="0; url=/hindi_cinema">', unsafe_allow_html=True)
+    st.stop()
 
 # ── INTERNAL PLAYER ROUTE ─────────────────────────────────────────────────────
 if "watch" in st.query_params:

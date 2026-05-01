@@ -155,8 +155,9 @@ class TMDBClient:
 
     def _execute_request(self, path: str) -> dict:
         from urllib.parse import quote
-        mirror = f"https://api.tmdb.org/3/{path}&api_key={Config.TMDB_KEY}"
-        direct = f"https://api.themoviedb.org/3/{path}&api_key={Config.TMDB_KEY}"
+        sep = "&" if "?" in path else "?"
+        mirror = f"https://api.tmdb.org/3/{path}{sep}api_key={Config.TMDB_KEY}"
+        direct = f"https://api.themoviedb.org/3/{path}{sep}api_key={Config.TMDB_KEY}"
         proxy = f"https://api.codetabs.com/v1/proxy?quest={quote(direct, safe='')}"
         
         endpoints = [
@@ -284,14 +285,14 @@ def _fetch_regional(lang: str, genre_label: str) -> Dict[str, list]:
     """Parallel fetch of regional movie lists based on language and primary genre."""
     genre_id = "18" if lang == "te" else "35"
     queries = {
-        "🔥 Popular": f"discover/movie?with_original_language={lang}&sort_by=popularity.desc&page=1",
-        "🔥 Popular 2": f"discover/movie?with_original_language={lang}&sort_by=popularity.desc&page=2",
-        "⭐ Top Rated": f"discover/movie?with_original_language={lang}&sort_by=vote_average.desc&vote_count.gte=300",
-        "🆕 Latest": f"discover/movie?with_original_language={lang}&sort_by=release_date.desc&primary_release_date.gte=2024-01-01&vote_count.gte=10",
-        "🏆 Classics": f"discover/movie?with_original_language={lang}&sort_by=vote_count.desc&primary_release_date.gte=2015-01-01&primary_release_date.lte=2023-12-31",
-        "📼 Old Classics": f"discover/movie?with_original_language={lang}&sort_by=vote_count.desc&primary_release_date.lte=2014-12-31",
-        "💥 Action": f"discover/movie?with_original_language={lang}&with_genres=28&sort_by=popularity.desc&page=1",
-        genre_label: f"discover/movie?with_original_language={lang}&with_genres={genre_id}&sort_by=vote_average.desc&vote_count.gte=200",
+        "🔥 Popular":     f"discover/movie?with_original_language={lang}&sort_by=popularity.desc&page=1",
+        "🔥 Popular 2":   f"discover/movie?with_original_language={lang}&sort_by=popularity.desc&page=2",
+        "⭐ Top Rated":   f"discover/movie?with_original_language={lang}&sort_by=vote_average.desc&vote_count.gte=50",
+        "🆕 Latest":      f"discover/movie?with_original_language={lang}&sort_by=release_date.desc&primary_release_date.gte=2023-01-01&vote_count.gte=5",
+        "🏆 Classics":    f"discover/movie?with_original_language={lang}&sort_by=vote_count.desc&primary_release_date.gte=2015-01-01&primary_release_date.lte=2023-12-31",
+        "📼 Old Classics":f"discover/movie?with_original_language={lang}&sort_by=vote_count.desc&primary_release_date.lte=2014-12-31",
+        "💥 Action":      f"discover/movie?with_original_language={lang}&with_genres=28&sort_by=popularity.desc&page=1",
+        genre_label:      f"discover/movie?with_original_language={lang}&with_genres={genre_id}&sort_by=popularity.desc&vote_count.gte=20",
     }
     
     with concurrent.futures.ThreadPoolExecutor(max_workers=Config.MAX_WORKERS_API) as ex:
@@ -303,15 +304,18 @@ def _fetch_regional(lang: str, genre_label: str) -> Dict[str, list]:
     for key, data in zip(queries.keys(), results):
         movies = []
         for m in (data.get("results", [])[:20] if data else []):
-            if m["id"] not in seen:
+            mid = m.get("id")
+            if mid and mid not in seen:
                 movies.append(m)
-                seen.add(m["id"])
+                seen.add(mid)
         grouped[key] = movies
         
     # Merge pages
     p2 = grouped.pop("🔥 Popular 2", [])
     grouped["🔥 Popular"] = grouped.get("🔥 Popular", []) + p2
-    return grouped
+    
+    # Remove empty tabs so UI doesn't show blank sections
+    return {k: v for k, v in grouped.items() if v}
 
 @st.cache_data(ttl=Config.TRENDING_TTL, show_spinner=False)
 def fetch_trending() -> list:

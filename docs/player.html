@@ -8,16 +8,8 @@
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800;900&display=swap');
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-        @keyframes auroraPlayer {
-            0%   { background-position: 0% 50%; }
-            50%  { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
-
         body {
-            background: linear-gradient(125deg, #0a0010 0%, #130020 15%, #0d0000 30%, #000d1a 50%, #0a0010 65%, #1a0005 80%, #000010 100%);
-            background-size: 400% 400%;
-            animation: auroraPlayer 22s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+            background: linear-gradient(135deg, #05050a 0%, #0d0b14 25%, #150f1a 50%, #0a0a14 75%, #020205 100%);
             font-family: 'Outfit', sans-serif;
             min-height: 100vh; color: #fff; margin: 0; overflow-x: hidden;
         }
@@ -99,8 +91,8 @@
 
         .p-player-wrap {
             position: relative; border-radius: 16px; overflow: hidden;
-            box-shadow: 0 0 100px rgba(229,9,20,0.18), 0 30px 70px rgba(0,0,0,0.9);
-            border: 1px solid rgba(229,9,20,0.22); background: #000;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+            border: 1px solid rgba(255,255,255,0.05); background: #000;
         }
 
         #player-frame { width: 100%; height: 700px; border: none; display: block; }

@@ -1365,6 +1365,52 @@ def render_skeleton(count=5):
     cards = ''.join(['<div class="skeleton-card"></div>' for _ in range(count)])
     st.markdown(f'<div class="skeleton-row">{cards}</div>', unsafe_allow_html=True)
 
+
+# ── FAST PATH: extract card data from discover response (ZERO extra API calls) ──
+@st.cache_data(ttl=86400, show_spinner=False)   # genre map valid for 24 hours
+def get_genre_map() -> dict:
+    """Returns {genre_id: genre_name} from TMDB. Cached 24h."""
+    data = tmdb_get("genre/movie/list?language=en-US")
+    genres = data.get("genres", []) if data else []
+    return {g["id"]: g["name"] for g in genres}
+
+
+def details_from_discover(movie: dict) -> dict:
+    """Build a card-ready details dict from a TMDB discover/search result.
+    Uses data already in the response — no extra HTTP call needed.
+    """
+    gmap   = get_genre_map()
+    poster = movie.get("poster_path")
+    genres = " • ".join(
+        gmap.get(gid, "") for gid in (movie.get("genre_ids") or [])[:2]
+        if gmap.get(gid)
+    )
+    overview = movie.get("overview", "") or ""
+    return {
+        "poster":   f"https://media.themoviedb.org/t/p/w342{poster}" if poster
+                    else "https://placehold.co/500x750/1a1a2e/e50914?text=No+Poster",
+        "trailer":  None,   # trailers only needed on the player page
+        "overview": (overview[:110] + "...") if len(overview) > 110 else overview,
+        "genres":   genres,
+        "title":    movie.get("title", ""),
+        "year":     (movie.get("release_date", "") or "")[:4],
+        "runtime":  "",
+        "rating":   f"{movie.get('vote_average', 0):.1f}",
+    }
+
+
+def render_section(movie_list: list, section_key: str):
+    """Render a list of movies instantly using discover-response data (0 extra API calls)."""
+    if not movie_list:
+        return
+    names   = [m.get("title", "Unknown") for m in movie_list]
+    years   = [safe_year(m.get("release_date", "")) for m in movie_list]
+    ratings = [safe_rating(m.get("vote_average", 0)) for m in movie_list]
+    ids     = [str(m["id"]) for m in movie_list]
+    details = [details_from_discover(m) for m in movie_list]
+    render_movie_cards(names, years, ratings, ids, details)
+
+
 def render_movie_cards(titles, years, ratings, ids, details_list):
     cards_html = ""
     for i in range(len(titles)):
@@ -1469,25 +1515,23 @@ else:
     if not has_content:
         st.warning("⚠️ Could not load movies right now. TMDB API may be temporarily unavailable. Please refresh the page.")
     else:
-        # ── TRENDING: fetch details upfront for hero + section ────────────────
+        # ── TRENDING ─────────────────────────────────────────────────────────
+        # Trending needs fetch_movie_details only for the hero banner trailer.
+        # Card data still comes from the discover response (fast path).
         if trending:
             try:
-                tr_ids = [str(m['id']) for m in trending]
-                with concurrent.futures.ThreadPoolExecutor(max_workers=20) as ex:
-                    tr_details = list(ex.map(fetch_movie_details, tr_ids))
-                render_hero_banner(trending[0], tr_details[0])
-                tr_names   = [m.get('title', 'Unknown') for m in trending]
-                tr_years   = [safe_year(m.get('release_date', '')) for m in trending]
-                tr_ratings = [safe_rating(m.get('vote_average', 0)) for m in trending]
+                # Only fetch details for movie[0] (hero banner needs trailer)
+                hero_det = fetch_movie_details(str(trending[0]["id"]))
+                render_hero_banner(trending[0], hero_det)
                 st.markdown("<div class='section-title'>🔥 Trending This Week <span style='font-size:0.8rem; vertical-align:middle; margin-left:10px; background:rgba(229,9,20,0.1); padding:4px 12px; border-radius:20px; border:1px solid rgba(229,9,20,0.3); color:#e50914; letter-spacing:1px;'>🔴 LIVE</span></div>", unsafe_allow_html=True)
-                render_movie_cards(tr_names, tr_years, tr_ratings, tr_ids, tr_details)
+                render_section(trending, "trending")
             except Exception as e:
-                st.warning(f"Could not load Trending section: {e}")
+                st.warning(f"Could not load Trending: {e}")
 
-        # ── TELUGU CINEMA: tabbed, lazy-loaded ───────────────────────────────
+        # ── TELUGU CINEMA ─────────────────────────────────────────────────────
         if te_has_movies:
             st.markdown("<div class='section-title'>🎬 Telugu Cinema</div>", unsafe_allow_html=True)
-            te_tabs = [k for k, v in telugu.items() if v]   # only show tabs that have movies
+            te_tabs = [k for k, v in telugu.items() if v]
             te_sel  = st.radio(
                 "Telugu Category", te_tabs,
                 horizontal=True, label_visibility="collapsed",
@@ -1496,20 +1540,18 @@ else:
             te_movies = telugu.get(te_sel, [])
             if te_movies:
                 try:
-                    te_ids     = [str(m['id']) for m in te_movies]
-                    with concurrent.futures.ThreadPoolExecutor(max_workers=20) as ex:
-                        te_det = list(ex.map(fetch_movie_details, te_ids))
-                    te_names   = [m.get('title', 'Unknown') for m in te_movies]
-                    te_years   = [safe_year(m.get('release_date', '')) for m in te_movies]
-                    te_ratings = [safe_rating(m.get('vote_average', 0)) for m in te_movies]
-                    render_movie_cards(te_names, te_years, te_ratings, te_ids, te_det)
+                    render_section(te_movies, f"te_{te_sel}")
+                    # Pre-warm the NEXT tab in background (user will likely click it)
+                    te_idx = te_tabs.index(te_sel)
+                    if te_idx + 1 < len(te_tabs):
+                        _prewarm(telugu.get(te_tabs[te_idx + 1], []))
                 except Exception as e:
                     st.warning(f"Could not load Telugu {te_sel}: {e}")
 
-        # ── HINDI CINEMA: tabbed, lazy-loaded ────────────────────────────────
+        # ── HINDI CINEMA ──────────────────────────────────────────────────────
         if hi_has_movies:
             st.markdown("<div class='section-title'>🌟 Hindi Cinema</div>", unsafe_allow_html=True)
-            hi_tabs = [k for k, v in hindi.items() if v]    # only show tabs that have movies
+            hi_tabs = [k for k, v in hindi.items() if v]
             hi_sel  = st.radio(
                 "Hindi Category", hi_tabs,
                 horizontal=True, label_visibility="collapsed",
@@ -1518,15 +1560,13 @@ else:
             hi_movies = hindi.get(hi_sel, [])
             if hi_movies:
                 try:
-                    hi_ids     = [str(m['id']) for m in hi_movies]
-                    with concurrent.futures.ThreadPoolExecutor(max_workers=20) as ex:
-                        hi_det = list(ex.map(fetch_movie_details, hi_ids))
-                    hi_names   = [m.get('title', 'Unknown') for m in hi_movies]
-                    hi_years   = [safe_year(m.get('release_date', '')) for m in hi_movies]
-                    hi_ratings = [safe_rating(m.get('vote_average', 0)) for m in hi_movies]
-                    render_movie_cards(hi_names, hi_years, hi_ratings, hi_ids, hi_det)
+                    render_section(hi_movies, f"hi_{hi_sel}")
+                    hi_idx = hi_tabs.index(hi_sel)
+                    if hi_idx + 1 < len(hi_tabs):
+                        _prewarm(hindi.get(hi_tabs[hi_idx + 1], []))
                 except Exception as e:
                     st.warning(f"Could not load Hindi {hi_sel}: {e}")
+
 
 
 st.markdown("""

@@ -42,10 +42,16 @@ if "watch" in st.query_params:
         with open("static/player.html", "r", encoding="utf-8") as f:
             html_content = f.read()
         
-        final_html = html_content.replace("params.get('id')", f"'{mid}'")
-        final_html = final_html.replace("params.get('title')", f"'{mtitle}'")
-        final_html = final_html.replace("params.get('from')", f"'{from_m}'")
-        final_html = final_html.replace("params.get('rel')", f"'{rel_date}'")
+        # Robust Global Variable Injection
+        injection_script = f"""
+        <script>
+            window.OVERRIDE_ID = '{mid}';
+            window.OVERRIDE_TITLE = '{mtitle.replace("'", "\\'")}';
+            window.OVERRIDE_FROM = '{from_m.replace("'", "\\'")}';
+            window.OVERRIDE_REL = '{rel_date}';
+        </script>
+        """
+        final_html = html_content.replace("<head>", f"<head>{injection_script}")
         
         st.markdown("""<style>
         .stApp>header, footer, #MainMenu {display:none!important;}

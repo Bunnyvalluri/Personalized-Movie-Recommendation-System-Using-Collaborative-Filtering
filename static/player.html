@@ -471,12 +471,12 @@
 
 <script>
 
-    // ── Parse URL params ─────────────────────────────────────────────────────────
+    // ── Parse URL params (with Global Overrides) ────────────────────────────────
     const params    = new URLSearchParams(window.location.search);
-    const mid       = params.get('id')    || '';
-    const mtitle    = params.get('title') || 'Movie';
-    const fromMovie = params.get('from')  || '';
-    const relDate   = params.get('rel')   || 'N/A';
+    const mid       = window.OVERRIDE_ID    || params.get('id')    || '';
+    const mtitle    = window.OVERRIDE_TITLE || params.get('title') || 'Movie';
+    const fromMovie = window.OVERRIDE_FROM  || params.get('from')  || '';
+    const relDate   = window.OVERRIDE_REL   || params.get('rel')   || 'N/A';
 
     // ── Set title & Badge ────────────────────────────────────────────────────────
     document.getElementById('display-title').textContent = mtitle;

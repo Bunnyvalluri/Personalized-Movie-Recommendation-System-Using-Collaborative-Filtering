@@ -474,6 +474,7 @@
     // ── Parse URL params ─────────────────────────────────────────────────────────
     const params    = new URLSearchParams(window.location.search);
     const mid       = params.get('id')    || '';
+    const mtitle    = params.get('title') || 'Movie';
     const fromMovie = params.get('from')  || '';
     const relDate   = params.get('rel')   || 'N/A';
 

@@ -517,8 +517,8 @@
     const servers = {
         s1: 'https://vidlink.pro/movie/' + mid,
         s2: 'https://vidsrc.cc/v2/embed/movie/' + mid,
-        s3: 'https://moviesapi.club/movie/' + mid,
-        s4: 'https://www.2embed.cc/embed/' + mid,
+        s3: 'https://vidsrc.me/embed/movie/' + mid,
+        s4: 'https://vidsrc.pro/embed/movie/' + mid,
         s5: 'https://smashystream.com/embed/movie/' + mid,
         s6: 'https://vidsrc.icu/embed/movie/' + mid
     };
@@ -526,8 +526,8 @@
     const serverNames = {
         s1: 'VidLink',
         s2: 'VidSrc CC',
-        s3: 'MoviesAPI',
-        s4: '2Embed',
+        s3: 'VidSrc ME',
+        s4: 'VidSrc PRO',
         s5: 'SmashyStream',
         s6: 'VidSrc ICU'
     };
@@ -660,23 +660,10 @@
         }
     }, 600);
 
-    // ── Auto-start: try s2 first, cycle if blank ─────────────────────────────────
+    // ── Auto-start: try servers in order ────────────────────────────────────────
     isAutoCycling = true;
     setTimeout(function() {
         realSrcLoaded = true;
-        const currentYear = new Date().getFullYear();
-        const movieYear   = parseInt(relDate);
-        
-        // If movie is unreleased (e.g. 2025), don't wait for servers
-        if (!isNaN(movieYear) && movieYear > currentYear) {
-            isAutoCycling = false;
-            loadEl.classList.add('hidden');
-            showUnavail();
-            loadText.textContent = 'Movie Unreleased';
-            loadSub.textContent = 'This title is set for ' + movieYear + '. Watch the trailer instead!';
-            return;
-        }
-
         var key = ORDER[0];
         activateBtn(key);
         showLoadingFor(key);

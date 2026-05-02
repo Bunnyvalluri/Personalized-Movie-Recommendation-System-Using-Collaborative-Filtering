@@ -607,20 +607,27 @@ else:
               </div></div>""", unsafe_allow_html=True)
             render_section(trending[1:]) # Skip the first one as it's in the hero banner
 
-            # ── REGIONAL HIGHLIGHTS ───────────────────────────────────────────
+            # ── ENHANCED REGIONAL DASHBOARD ───────────────────────────────────
             from backend import fetch_telugu_movies, fetch_hindi_movies, fetch_global_movies
             
-            st.markdown('<div style="padding:40px 0 16px"><div class="section-title">🎬 Telugu Highlights</div></div>', unsafe_allow_html=True)
+            # ROW 1: TELUGU
+            st.markdown('<div style="padding:40px 0 16px"><div class="section-title">🎬 New Telugu Releases</div></div>', unsafe_allow_html=True)
             te = fetch_telugu_movies()
             if te: render_section(list(te.values())[0])
 
-            st.markdown('<div style="padding:40px 0 16px"><div class="section-title">🌟 Bollywood Bliss</div></div>', unsafe_allow_html=True)
+            # ROW 2: HINDI
+            st.markdown('<div style="padding:40px 0 16px"><div class="section-title">🌟 Hindi Super Hits</div></div>', unsafe_allow_html=True)
             hi = fetch_hindi_movies()
             if hi: render_section(list(hi.values())[0])
 
-            st.markdown('<div style="padding:40px 0 16px"><div class="section-title">🌍 Global Hits</div></div>', unsafe_allow_html=True)
+            # ROW 3: GLOBAL
+            st.markdown('<div style="padding:40px 0 16px"><div class="section-title">🌍 Global Blockbusters</div></div>', unsafe_allow_html=True)
             gl = fetch_global_movies()
             if gl: render_section(list(gl.values())[0])
+
+            # ROW 4: ACTION & DRAMA (Mixed)
+            st.markdown('<div style="padding:40px 0 16px"><div class="section-title">🔥 Action & Drama Special</div></div>', unsafe_allow_html=True)
+            if te and len(te) > 1: render_section(list(te.values())[1])
         else:
             st.warning("⚠️ Could not load trending movies. Please refresh.")
     except Exception as e:

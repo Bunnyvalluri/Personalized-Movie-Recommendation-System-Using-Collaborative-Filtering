@@ -659,10 +659,23 @@
         }
     }, 600);
 
-    // ── Auto-start: try s1 first, cycle if blank ─────────────────────────────────
+    // ── Auto-start: try s2 first, cycle if blank ─────────────────────────────────
     isAutoCycling = true;
     setTimeout(function() {
         realSrcLoaded = true;
+        const currentYear = new Date().getFullYear();
+        const movieYear   = parseInt(relDate);
+        
+        // If movie is unreleased (e.g. 2025), don't wait for servers
+        if (!isNaN(movieYear) && movieYear > currentYear) {
+            isAutoCycling = false;
+            loadEl.classList.add('hidden');
+            showUnavail();
+            loadText.textContent = 'Movie Unreleased';
+            loadSub.textContent = 'This title is set for ' + movieYear + '. Watch the trailer instead!';
+            return;
+        }
+
         var key = ORDER[0];
         activateBtn(key);
         showLoadingFor(key);

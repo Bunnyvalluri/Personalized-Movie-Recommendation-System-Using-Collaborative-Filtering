@@ -612,11 +612,20 @@ if show_recs or ("recs" in st.query_params):
     else:
         st.info("No recommendations found. Try another movie.")
 else:
-    # ── TRENDING ──────────────────────────────────────────────────────────────
-    try:
-        with st.spinner("⚡ Loading trending movies…"):
-            trending = fetch_trending()
-        if trending:
+            # ── SUPER BLOCKBUSTERS (USER FAVORITES) ───────────────────────────
+            st.markdown('<div style="padding:40px 0 16px"><div class="section-title">💎 Super Blockbusters (Guaranteed Hits)</div></div>', unsafe_allow_html=True)
+            # Pre-verified working IDs: RRR (579047), Pathaan (868759), Interstellar (157336)
+            fav_ids = ["579047", "868759", "157336"]
+            with concurrent.futures.ThreadPoolExecutor(max_workers=3) as ex:
+                fav_dets = list(ex.map(fetch_movie_details, fav_ids))
+            
+            f_names = [d["title"] for d in fav_dets]
+            f_years = [d["year"] for d in fav_dets]
+            f_ratings = [d["rating"] for d in fav_dets]
+            f_ids = fav_ids
+            render_section((f_names, f_years, f_ratings, f_ids, fav_dets))
+
+            # ── TRENDING ──────────────────────────────────────────────────────
             hero_det = fetch_movie_details(str(trending[0]["id"]))
             render_hero_banner(trending[0], hero_det)
             st.markdown("""<div style="padding:40px 0 16px">

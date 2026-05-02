@@ -216,19 +216,21 @@
     </nav>
 
     <div class="p-title-strip">
-        <div class="p-play-icon">▶</div>
-        <div class="p-movie-name">Now Playing: <span id="display-title">Movie</span></div>
+        <div class="p-movie-name">Now Playing: <span id="display-title">Movie</span> <span id="rel-badge" style="font-size:11px;padding:4px 10px;background:rgba(229,9,20,0.2);border:1px solid #e50914;border-radius:20px;color:#e50914;display:none;vertical-align:middle;margin-left:10px">COMING SOON</span></div>
     </div>
 
     <div class="p-srv-bar">
         <span class="p-srv-label">Server:</span>
-        <button class="srv-btn active" data-key="s1" onclick="loadSrc('s1', this)">⚡ Server 1</button>
-        <button class="srv-btn" data-key="s2" onclick="loadSrc('s2', this)">⚡ Server 2</button>
-        <button class="srv-btn" data-key="s3" onclick="loadSrc('s3', this)">⚡ Server 3</button>
-        <button class="srv-btn" data-key="s4" onclick="loadSrc('s4', this)">⚡ Server 4</button>
-        <button class="srv-btn" data-key="s5" onclick="loadSrc('s5', this)">⚡ Server 5</button>
-        <button class="srv-btn" data-key="s6" onclick="loadSrc('s6', this)">⚡ Server 6</button>
+        <button class="srv-btn active" data-key="s2" onclick="loadSrc('s2', this)">⚡ Server 1</button>
+        <button class="srv-btn" data-key="s1" onclick="loadSrc('s1', this)">⚡ Server 2</button>
+        <button class="srv-btn" data-key="s5" onclick="loadSrc('s5', this)">⚡ Server 3</button>
+        <button class="srv-btn" data-key="s6" onclick="loadSrc('s6', this)">⚡ Server 4</button>
+        <button class="srv-btn" data-key="s4" onclick="loadSrc('s4', this)">⚡ Server 5</button>
+        <button class="srv-btn" data-key="s3" onclick="loadSrc('s3', this)">⚡ Server 6</button>
         <span class="srv-status trying" id="srv-status">Connecting…</span>
+        <a id="new-tab-link" href="#" target="_blank" style="text-decoration:none;">
+            <button class="srv-btn" style="background:rgba(34,197,94,0.1);border-color:rgba(34,197,94,0.4);color:#22c55e;">↗ Open in New Tab</button>
+        </a>
         <span class="ad-block-badge">🛡️ Ads Blocked</span>
     </div>
 
@@ -472,13 +474,20 @@
     // ── Parse URL params ─────────────────────────────────────────────────────────
     const params    = new URLSearchParams(window.location.search);
     const mid       = params.get('id')    || '';
-    const mtitle    = params.get('title') || 'Movie';
-    // "from" = the movie title that was searched (plain text, URL-encoded)
     const fromMovie = params.get('from')  || '';
+    const relDate   = params.get('rel')   || 'N/A';
 
-    // ── Set title ────────────────────────────────────────────────────────────────
+    // ── Set title & Badge ────────────────────────────────────────────────────────
     document.getElementById('display-title').textContent = mtitle;
+    if (relDate && parseInt(relDate) > 2024) {
+        document.getElementById('rel-badge').style.display = 'inline-block';
+        document.getElementById('loading-sub').textContent = 'This movie is unreleased or very new. It may not be on servers yet.';
+    }
     document.title = 'iBOMMA RAHUL – ' + mtitle;
+    
+    // Set new tab link
+    const initialKey = ORDER[0];
+    document.getElementById('new-tab-link').href = servers[initialKey];
 
     // ── Back button: label and behavior ──────────────────────────────────────────
     const backBtn = document.getElementById('back-btn');
@@ -522,7 +531,7 @@
         s6: 'Embed.su'
     };
 
-    const ORDER = ['s1','s2','s3','s4','s5','s6'];
+    const ORDER = ['s2','s1','s5','s6','s4','s3'];
 
     let blankTimer   = null;
     let realSrcLoaded = false;  // Ignore the initial about:blank onload
@@ -602,6 +611,7 @@
         activateBtn(key);
         showLoadingFor(key);
         document.getElementById('player-frame').src = servers[key];
+        document.getElementById('new-tab-link').href = servers[key];
         startTimer(key);
     }
 

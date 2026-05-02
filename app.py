@@ -17,11 +17,11 @@ st.set_page_config(
 # ── NAV INTERCEPT ─────────────────────────────────────────────────────────────
 nav_target = st.query_params.get("nav")
 if nav_target == "telugu":
-    st.markdown('<meta http-equiv="refresh" content="0; url=/telugu_cinema">', unsafe_allow_html=True)
-    st.stop()
+    st.switch_page("pages/telugu_cinema.py")
 elif nav_target == "hindi":
-    st.markdown('<meta http-equiv="refresh" content="0; url=/hindi_cinema">', unsafe_allow_html=True)
-    st.stop()
+    st.switch_page("pages/hindi_cinema.py")
+elif nav_target == "global":
+    st.switch_page("pages/global_cinema.py")
 
 # ── PLAYER ROUTE ──────────────────────────────────────────────────────────────
 if "watch" in st.query_params:
@@ -29,54 +29,45 @@ if "watch" in st.query_params:
     mid      = st.query_params.get("watch", "")
     mtitle   = st.query_params.get("title", "Movie")
     from_m   = st.query_params.get("from", "")
-    me       = _html.escape(mtitle)
-    back_url = f"/?recs=1&movie={_q(from_m)}" if from_m else "/"
-    srv = {
-        "v1": f"https://vidsrc.in/embed/movie/{mid}",
-        "v2": f"https://vidsrc.cc/v2/embed/movie/{mid}",
-        "v3": f"https://multiembed.mov/directstream.php?video_id={mid}&tmdb=1",
-        "v4": f"https://vidsrc.to/embed/movie/{mid}",
-        "v5": f"https://embed.su/embed/movie/{mid}",
-        "v6": f"https://vidsrc.rip/embed/movie/{mid}",
-    }
-    sj = json.dumps(srv)
-    st.markdown("""<style>.stApp>header,.block-container,footer,#MainMenu{display:none!important;}
-    .block-container{padding:0!important;max-width:100%!important;}</style>""", unsafe_allow_html=True)
-    components.html(f"""<!DOCTYPE html><html><head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@700;900&display=swap');
-*{{box-sizing:border-box;margin:0;padding:0}}
-body{{background:#000;font-family:'Outfit',sans-serif;color:#fff;height:100vh;display:flex;flex-direction:column}}
-#pw{{flex:1;position:relative}}#pf{{width:100%;height:100%;border:none}}
-.bar{{display:flex;align-items:center;gap:10px;padding:10px 16px;background:#080808;border-bottom:1px solid #1a1a1a}}
-.logo{{font-weight:900;background:linear-gradient(135deg,#e50914,#ff6b6b);-webkit-background-clip:text;-webkit-text-fill-color:transparent}}
-.back{{color:#888;text-decoration:none;font-size:13px;font-weight:700;padding:6px 14px;border:1px solid #333;border-radius:20px}}
-.ttl{{flex:1;font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}
-.srvs{{display:flex;gap:6px;flex-wrap:wrap}}
-.sb{{font-size:11px;padding:5px 12px;border-radius:20px;border:1px solid #333;background:transparent;color:#888;cursor:pointer;font-family:'Outfit',sans-serif;font-weight:700}}
-.sb:hover,.sb.active{{background:#e50914;border-color:#e50914;color:#fff}}
-#pl{{position:absolute;inset:0;background:#000;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px}}
-#pl.h{{opacity:0;pointer-events:none}}.sp{{width:40px;height:40px;border:3px solid #222;border-top-color:#e50914;border-radius:50%;animation:sp 1s linear infinite}}
-@keyframes sp{{to{{transform:rotate(360deg)}}}}
-</style></head><body>
-<div class="bar"><a href="{back_url}" class="back">← Back</a><div class="logo">iBOMMA</div>
-<div class="ttl">{me}</div><div class="srvs" id="s"></div></div>
-<div id="pw"><div id="pl"><div class="sp"></div><div style="color:#666;font-size:13px" id="pt">Loading...</div></div>
-<iframe id="pf" allowfullscreen allow="autoplay;fullscreen" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation"></iframe></div>
-<script>
-var sv={sj},OR=["v1","v2","v3","v4","v5","v6"],
-nm={{"v1":"VidSrc IN","v2":"VidSrc CC","v3":"MultiEmbed","v4":"VidSrc","v5":"Embed.su","v6":"VidSrc RIP"}},
-ck=OR[0],tm,ac=true,rl=false,
-pl=document.getElementById('pl'),pt=document.getElementById('pt'),pf=document.getElementById('pf'),se=document.getElementById('s');
-OR.forEach(k=>{{var b=document.createElement('button');b.className='sb';b.dataset.key=k;b.textContent=nm[k];b.onclick=()=>ls(k);se.appendChild(b);}});
-function sa(k){{document.querySelectorAll('.sb').forEach(b=>b.classList.toggle('active',b.dataset.key===k));}}
-function sl(k){{pl.classList.remove('h');pt.textContent='Connecting to '+nm[k]+'...';}}
-function st2(k){{clearTimeout(tm);tm=setTimeout(()=>{{if(!pl.classList.contains('h')){{var ni=OR.indexOf(k)+1;if(ni<OR.length&&ac){{var nk=OR[ni];sa(nk);sl(nk);pf.src=sv[nk];st2(nk);}}else pl.classList.add('h');}}}},6000);}}
-function ls(k){{ac=false;sa(k);sl(k);pf.src=sv[k];st2(k);}}
-pf.onload=()=>{{if(rl){{clearTimeout(tm);pl.classList.add('h');}}}};
-setTimeout(()=>{{rl=true;sa(ck);sl(ck);pf.src=sv[ck];st2(ck);}},100);
-</script></body></html>""", height=900, scrolling=True)
+    
+    # Fetch additional details for the player (Release Status)
+    try:
+        det = fetch_movie_details(mid)
+        rel_date = det.get("year", "N/A")
+    except:
+        rel_date = "N/A"
+    
+    # ── PREMIUM PLAYER ROUTE ────────────────────────────────────────────────
+    try:
+        with open("static/player.html", "r", encoding="utf-8") as f:
+            html_content = f.read()
+        
+        final_html = html_content.replace("params.get('id')", f"'{mid}'")
+        final_html = final_html.replace("params.get('title')", f"'{mtitle}'")
+        final_html = final_html.replace("params.get('from')", f"'{from_m}'")
+        final_html = final_html.replace("params.get('rel')", f"'{rel_date}'")
+        
+        st.markdown("""<style>
+        .stApp>header, footer, #MainMenu {display:none!important;}
+        .block-container {padding:0!important; max-width:100%!important; height:100vh!important;}
+        iframe {border:none !important;}
+        </style>""", unsafe_allow_html=True)
+        
+        components.html(final_html, height=1200, scrolling=True)
+    except Exception as e:
+        st.error(f"Failed to load premium player: {e}")
+        st.stop()
+        
+    # Related movies section (visible on scroll)
+    try:
+        movies_df, similarity_mtx = load_data()
+        names, years, ratings, ids, details = _rec_engine(mtitle, movies_df, similarity_mtx)
+        if names:
+            st.markdown('<div style="padding:40px 0 16px"><div class="section-title">📺 You Might Also Like</div></div>', unsafe_allow_html=True)
+            render_movie_cards(names, years, ratings, ids, details, mtitle)
+    except Exception as e:
+        pass
+        
     st.stop()
 
 # ── LANDING PAGE ──────────────────────────────────────────────────────────────
@@ -302,6 +293,8 @@ with hero_right:
       justify-content:flex-end;padding:16px;
       backface-visibility:hidden;
       overflow:hidden;
+      background-size: cover;
+      background-position: center;
     }
     /* Card 1 — Telugu (front-center) */
     .c1{
@@ -310,9 +303,9 @@ with hero_right:
       z-index:3;
     }
     .c1 .card-face{
-      background:linear-gradient(160deg,#1a0a00 0%,#3d0000 40%,#8b0000 70%,#e50914 100%);
+      background-image: linear-gradient(160deg, rgba(229,9,20,0.4), rgba(0,0,0,0.8)), url('https://image.tmdb.org/t/p/w500/n7m76YjZS78X5I7m7vJ2yS5Uv8.jpg');
       border:1px solid rgba(229,9,20,0.5);
-      box-shadow:0 30px 80px rgba(229,9,20,0.5),inset 0 1px 0 rgba(255,255,255,0.15);
+      box-shadow:0 30px 80px rgba(229,9,20,0.5),inset 0 1px 0 rgba(255,255,255,0.1);
     }
     /* Card 2 — Hindi (left-back) */
     .c2{
@@ -321,7 +314,7 @@ with hero_right:
       z-index:2;
     }
     .c2 .card-face{
-      background:linear-gradient(160deg,#080018 0%,#1a0038 40%,#4a00a8 70%,#7c3aed 100%);
+      background-image: linear-gradient(160deg, rgba(124,58,237,0.4), rgba(0,0,0,0.8)), url('https://image.tmdb.org/t/p/w500/m1B96SYFnLZ67m709YpT9I3oSTa.jpg');
       border:1px solid rgba(124,58,237,0.5);
       box-shadow:0 25px 70px rgba(124,58,237,0.4),inset 0 1px 0 rgba(255,255,255,0.1);
     }
@@ -332,7 +325,7 @@ with hero_right:
       z-index:2;
     }
     .c3 .card-face{
-      background:linear-gradient(160deg,#001a10 0%,#003828 40%,#007040 70%,#10b981 100%);
+      background-image: linear-gradient(160deg, rgba(16,185,129,0.4), rgba(0,0,0,0.8)), url('https://image.tmdb.org/t/p/w500/gEU2QniE6EwfVDxCzs25vubU2Ky.jpg');
       border:1px solid rgba(16,185,129,0.5);
       box-shadow:0 25px 70px rgba(16,185,129,0.3),inset 0 1px 0 rgba(255,255,255,0.1);
     }
@@ -361,8 +354,7 @@ with hero_right:
     /* Poster illustration area */
     .poster-art{
       position:absolute;top:0;left:0;right:0;bottom:0;
-      display:flex;align-items:center;justify-content:center;
-      opacity:0.15;font-size:90px;
+      background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 60%);
       pointer-events:none;
     }
     /* Play button overlay */
@@ -429,9 +421,9 @@ with hero_right:
       <div class="scene">
         <div class="cards-3d" id="cards">
           <!-- Card 1: Telugu -->
-          <div class="card c1">
+          <div class="card c1" onclick="window.top.location.href='/telugu_cinema'">
             <div class="card-face">
-              <div class="poster-art">🎭</div>
+              <div class="poster-art"></div>
               <div class="play-overlay">▶</div>
               <div class="poster-tag">🌶️ Tollywood</div>
               <div class="poster-title">RRR</div>
@@ -442,9 +434,9 @@ with hero_right:
             </div>
           </div>
           <!-- Card 2: Hindi -->
-          <div class="card c2">
+          <div class="card c2" onclick="window.top.location.href='/hindi_cinema'">
             <div class="card-face">
-              <div class="poster-art">✨</div>
+              <div class="poster-art"></div>
               <div class="poster-tag">✨ Bollywood</div>
               <div class="poster-title">Pathaan</div>
               <div class="poster-meta">
@@ -454,9 +446,9 @@ with hero_right:
             </div>
           </div>
           <!-- Card 3: Global -->
-          <div class="card c3">
+          <div class="card c3" onclick="window.top.location.href='/global_cinema'">
             <div class="card-face">
-              <div class="poster-art">🌍</div>
+              <div class="poster-art"></div>
               <div class="poster-tag">🌍 Global</div>
               <div class="poster-title">Interstellar</div>
               <div class="poster-meta">
@@ -493,85 +485,51 @@ with hero_right:
 
 
 # ── GENRE NAVIGATION BUTTONS ─────────────────────────────────────────────────
-import streamlit.components.v1 as _btns
-_btns.html("""
+# ── GENRE NAVIGATION BUTTONS ─────────────────────────────────────────────────
+st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@700;900&display=swap');
-*{margin:0;padding:0;box-sizing:border-box;}
-body{background:transparent;font-family:'Outfit',sans-serif;}
-.btn-row{display:flex;gap:16px;padding:8px 0 4px;flex-wrap:wrap;}
+.btn-row{display:flex;gap:16px;padding:8px 0 24px;flex-wrap:wrap;margin-bottom:20px;}
+.genre-link{text-decoration:none !important;}
 .genre-btn{
   display:flex;align-items:center;gap:14px;
   padding:18px 32px;border-radius:16px;border:none;
   cursor:pointer;font-family:'Outfit',sans-serif;
-  font-size:1rem;font-weight:800;color:#fff;
+  font-size:1rem;font-weight:800;color:#fff !important;
   position:relative;overflow:hidden;
-  transition:transform 0.25s cubic-bezier(.175,.885,.32,1.275),
-             box-shadow 0.25s ease;
+  transition:all 0.3s cubic-bezier(.175,.885,.32,1.275);
   text-align:left;min-width:220px;
 }
-.genre-btn::before{
-  content:'';position:absolute;inset:0;
-  background:linear-gradient(rgba(255,255,255,0.12),transparent);
-  pointer-events:none;
-}
-.genre-btn:hover{transform:translateY(-5px);}
-.genre-btn:active{transform:translateY(-2px);}
-/* Telugu — vivid red-orange */
-.btn-telugu{
-  background:linear-gradient(135deg,#ff0a16 0%,#e50914 40%,#c20000 100%);
-  box-shadow:0 8px 28px rgba(229,9,20,0.5),
-             0 2px 8px rgba(229,9,20,0.3),
-             inset 0 1px 0 rgba(255,255,255,0.2);
-}
-.btn-telugu:hover{
-  box-shadow:0 18px 48px rgba(229,9,20,0.65),
-             0 4px 16px rgba(229,9,20,0.4),
-             inset 0 1px 0 rgba(255,255,255,0.25);
-}
-/* Hindi — vivid violet-indigo */
-.btn-hindi{
-  background:linear-gradient(135deg,#8b5cf6 0%,#7c3aed 40%,#5b21b6 100%);
-  box-shadow:0 8px 28px rgba(139,92,246,0.5),
-             0 2px 8px rgba(124,58,237,0.3),
-             inset 0 1px 0 rgba(255,255,255,0.2);
-}
-.btn-hindi:hover{
-  box-shadow:0 18px 48px rgba(139,92,246,0.65),
-             0 4px 16px rgba(124,58,237,0.4),
-             inset 0 1px 0 rgba(255,255,255,0.25);
-}
+.genre-btn:hover{transform:translateY(-8px) scale(1.02); filter: brightness(1.1); box-shadow: 0 12px 32px rgba(0,0,0,0.3);}
+.genre-btn:active{transform:translateY(-2px) scale(0.98); filter: brightness(0.9);}
+.btn-telugu{background:linear-gradient(135deg,#ff0a16 0%,#e50914 40%,#c20000 100%);box-shadow:0 8px 28px rgba(229,9,20,0.4);}
+.btn-hindi{background:linear-gradient(135deg,#8b5cf6 0%,#7c3aed 40%,#5b21b6 100%);box-shadow:0 8px 28px rgba(139,92,246,0.4);}
+.btn-global{background:linear-gradient(135deg,#10b981 0%,#059669 40%,#047857 100%);box-shadow:0 8px 28px rgba(16,185,129,0.4);}
 .btn-icon{font-size:1.5rem;line-height:1;}
 .btn-info{display:flex;flex-direction:column;gap:2px;}
 .btn-label{font-size:1rem;font-weight:900;letter-spacing:-0.3px;}
 .btn-sub{font-size:0.7rem;font-weight:600;opacity:0.65;letter-spacing:1px;text-transform:uppercase;}
-/* Shine animation */
-@keyframes shine{0%{left:-120%}60%,100%{left:120%}}
-.genre-btn::after{
-  content:'';position:absolute;top:0;left:-120%;
-  width:60%;height:100%;
-  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.18),transparent);
-  animation:shine 3.5s ease-in-out infinite;
-}
-.btn-hindi::after{animation-delay:1.75s;}
 </style>
 <div class="btn-row">
-  <button class="genre-btn btn-telugu" onclick="window.parent.location.href='/telugu_cinema'">
-    <span class="btn-icon">🌶️</span>
-    <div class="btn-info">
-      <span class="btn-label">Telugu Cinema</span>
-      <span class="btn-sub">Tollywood · 500+ Films</span>
-    </div>
-  </button>
-  <button class="genre-btn btn-hindi" onclick="window.parent.location.href='/hindi_cinema'">
-    <span class="btn-icon">✨</span>
-    <div class="btn-info">
-      <span class="btn-label">Hindi Cinema</span>
-      <span class="btn-sub">Bollywood · 500+ Films</span>
-    </div>
-  </button>
+  <a href="/telugu_cinema" class="genre-link" target="_self">
+    <button class="genre-btn btn-telugu">
+      <span class="btn-icon">🌶️</span>
+      <div class="btn-info"><span class="btn-label">Telugu Cinema</span><span class="btn-sub">Tollywood · 500+ Films</span></div>
+    </button>
+  </a>
+  <a href="/hindi_cinema" class="genre-link" target="_self">
+    <button class="genre-btn btn-hindi">
+      <span class="btn-icon">✨</span>
+      <div class="btn-info"><span class="btn-label">Hindi Cinema</span><span class="btn-sub">Bollywood · 500+ Films</span></div>
+    </button>
+  </a>
+  <a href="/global_cinema" class="genre-link" target="_self">
+    <button class="genre-btn btn-global">
+      <span class="btn-icon">🌍</span>
+      <div class="btn-info"><span class="btn-label">Global Cinema</span><span class="btn-sub">Hollywood · 1000+ Films</span></div>
+    </button>
+  </a>
 </div>
-""", height=100)
+""", unsafe_allow_html=True)
 
 # AI Search
 st.markdown("""
@@ -641,7 +599,22 @@ else:
                   ● LIVE
                 </span>
               </div></div>""", unsafe_allow_html=True)
-            render_section(trending)
+            render_section(trending[1:]) # Skip the first one as it's in the hero banner
+
+            # ── REGIONAL HIGHLIGHTS ───────────────────────────────────────────
+            from backend import fetch_telugu_movies, fetch_hindi_movies, fetch_global_movies
+            
+            st.markdown('<div style="padding:40px 0 16px"><div class="section-title">🎬 Telugu Highlights</div></div>', unsafe_allow_html=True)
+            te = fetch_telugu_movies()
+            if te: render_section(list(te.values())[0])
+
+            st.markdown('<div style="padding:40px 0 16px"><div class="section-title">🌟 Bollywood Bliss</div></div>', unsafe_allow_html=True)
+            hi = fetch_hindi_movies()
+            if hi: render_section(list(hi.values())[0])
+
+            st.markdown('<div style="padding:40px 0 16px"><div class="section-title">🌍 Global Hits</div></div>', unsafe_allow_html=True)
+            gl = fetch_global_movies()
+            if gl: render_section(list(gl.values())[0])
         else:
             st.warning("⚠️ Could not load trending movies. Please refresh.")
     except Exception as e:

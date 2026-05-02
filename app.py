@@ -76,6 +76,9 @@ if "watch" in st.query_params:
         
     st.stop()
 
+    # ── SEARCH BAR & CATEGORY GRID ────────────────────────────────────────────
+    # (Removed from here - will be moved to landing page section below)
+
 # ── LANDING PAGE ──────────────────────────────────────────────────────────────
 inject_base_css()
 
@@ -575,6 +578,24 @@ with col1:
     selected_movie = st.selectbox("Pick a movie:", movie_list, index=default_index, label_visibility="collapsed")
 with col2:
     show_recs = st.button("🎯 Find Similar", use_container_width=True)
+
+# ── CATEGORY GRID ─────────────────────────────────────────────────────────────
+st.markdown("""
+<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap:24px; padding:32px 0 50px;">
+    <div onclick="window.parent.location.href='/telugu_cinema'" style="cursor:pointer; background:linear-gradient(135deg,rgba(229,9,20,0.12),rgba(0,0,0,0.4)); border:1px solid rgba(229,9,20,0.25); padding:30px; border-radius:20px; text-align:center; transition:0.3s;">
+        <div style="font-size:2.5rem;margin-bottom:10px">🎬</div>
+        <div style="font-weight:900;font-size:1.2rem;color:#fff;letter-spacing:1px">TELUGU</div>
+    </div>
+    <div onclick="window.parent.location.href='/hindi_cinema'" style="cursor:pointer; background:linear-gradient(135deg,rgba(34,197,94,0.12),rgba(0,0,0,0.4)); border:1px solid rgba(34,197,94,0.25); padding:30px; border-radius:20px; text-align:center; transition:0.3s;">
+        <div style="font-size:2.5rem;margin-bottom:10px">🍿</div>
+        <div style="font-weight:900;font-size:1.2rem;color:#fff;letter-spacing:1px">HINDI</div>
+    </div>
+    <div onclick="window.parent.location.href='/global_cinema'" style="cursor:pointer; background:linear-gradient(135deg,rgba(59,130,246,0.12),rgba(0,0,0,0.4)); border:1px solid rgba(59,130,246,0.25); padding:30px; border-radius:20px; text-align:center; transition:0.3s;">
+        <div style="font-size:2.5rem;margin-bottom:10px">🌍</div>
+        <div style="font-weight:900;font-size:1.2rem;color:#fff;letter-spacing:1px">GLOBAL</div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
 # ── RECOMMENDATIONS ───────────────────────────────────────────────────────────
 if show_recs or ("recs" in st.query_params):

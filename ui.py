@@ -300,10 +300,6 @@ div[data-testid="stTabsTabList"] {
   background: linear-gradient(135deg, rgba(77,166,255,0.1), rgba(0,10,20,0.5));
   border: 1px solid rgba(77,166,255,0.15);
 }
-.gl-header {
-  background: linear-gradient(135deg, rgba(16,185,129,0.1), rgba(0,10,5,0.5));
-  border: 1px solid rgba(16,185,129,0.15);
-}
 .te-header::before, .hi-header::before {
   content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
   background: url('https://grainy-gradients.vercel.app/noise.svg');
@@ -317,11 +313,6 @@ div[data-testid="stTabsTabList"] {
 .hi-header .label {
   font-size: 2rem;
   background: linear-gradient(135deg, #80c7ff, #0077ff);
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-}
-.gl-header .label {
-  font-size: 2rem;
-  background: linear-gradient(135deg, #10b981, #059669);
   -webkit-background-clip: text; -webkit-text-fill-color: transparent;
 }
 
@@ -339,11 +330,11 @@ div[data-testid="stTabsTabList"] {
   position: absolute;
   inset: 0;
   background-size: cover;
-  background-position: center 15%;
-  filter: brightness(0.7) contrast(1.1) saturate(1.1);
-  transition: transform 12s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  background-position: center 20%;
+  filter: brightness(0.6) contrast(1.1);
+  transition: transform 10s ease-out;
 }
-.hero-banner:hover .hero-backdrop { transform: scale(1.08); }
+.hero-banner:hover .hero-backdrop { transform: scale(1.03); }
 .hero-gradient {
   position: absolute;
   inset: 0;
@@ -436,7 +427,7 @@ div[data-testid="stTabsTabList"] {
 
 
 def render_nav(active_page="home"):
-    pages = [("🏠 Home", "/", "home"), ("🎬 Telugu", "/telugu_cinema", "telugu"), ("🌟 Hindi", "/hindi_cinema", "hindi"), ("🌍 Global", "/global_cinema", "global")]
+    pages = [("🏠 Home", "/", "home"), ("🎬 Telugu", "/telugu_cinema", "telugu"), ("🌟 Hindi", "/hindi_cinema", "hindi")]
     links = "".join(
         f'<a href="{url}" class="{"active" if key==active_page else ""}">{label}</a>'
         for label, url, key in pages
@@ -456,8 +447,8 @@ def render_hero_banner(movie, details):
     year  = safe_year(movie.get("release_date",""))
     rating = safe_rating(movie.get("vote_average",0))
     backdrop = movie.get("backdrop_path","")
-    backdrop_url = f"https://image.tmdb.org/t/p/w1280{backdrop}" if backdrop else "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?q=80&w=2070&auto=format&fit=crop"
-    watch_url = f"/?watch={_q(mid)}&title={_q(movie.get('title',''))}&from={_q(movie.get('title',''))}"
+    backdrop_url = f"https://image.tmdb.org/t/p/w1280{backdrop}" if backdrop else ""
+    watch_url = f"{GH_BASE}/player.html?id={_q(mid)}&title={_q(movie.get('title',''))}&from={_q(movie.get('title',''))}"
     trailer_url = (details or {}).get("trailer","")
     st.markdown(f"""
     <div class="hero-banner">
@@ -479,9 +470,9 @@ def render_hero_banner(movie, details):
 def render_movie_cards(titles, years, ratings, ids, details_list, selected_movie=""):
     cards_html = ""
     for i in range(len(titles)):
-        d = details_list[i] or {"poster":"https://placehold.co/500x750/111/222?text=Poster+Missing","trailer":None,"overview":"","genres":""}
+        d = details_list[i] or {"poster":"https://placehold.co/500x750/333/FFF?text=No+Poster","trailer":None,"overview":"","genres":""}
         mid = str(ids[i])
-        watch_url = f"/?watch={_q(mid)}&title={_q(titles[i])}&from={_q(selected_movie)}"
+        watch_url = f"{GH_BASE}/player.html?id={_q(mid)}&title={_q(titles[i])}&from={_q(selected_movie)}"
         poster = escape(d.get("poster",""))
         title_esc = escape(titles[i])
         overview_esc = escape(d.get("overview",""))
@@ -512,9 +503,7 @@ def render_movie_cards(titles, years, ratings, ids, details_list, selected_movie
 
 
 def render_section(movie_list, selected_movie=""):
-    if not movie_list:
-        st.info("✨ More movies coming soon to this section! Check back later.")
-        return
+    if not movie_list: return
     import concurrent.futures
     names   = [m.get("title","Unknown") for m in movie_list]
     years   = [safe_year(m.get("release_date","")) for m in movie_list]

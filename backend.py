@@ -11,7 +11,6 @@ import logging
 import threading
 import concurrent.futures
 from typing import List, Dict, Any, Optional, Tuple, Set
-from urllib.parse import quote as _url_quote
 
 import numpy as np
 import pandas as pd
@@ -288,12 +287,12 @@ def _fetch_regional(lang: str, genre_label: str) -> Dict[str, list]:
     queries = {
         "🔥 Popular":     f"discover/movie?with_original_language={lang}&sort_by=popularity.desc&page=1",
         "🔥 Popular 2":   f"discover/movie?with_original_language={lang}&sort_by=popularity.desc&page=2",
-        "⭐ Top Rated":   f"discover/movie?with_original_language={lang}&sort_by=vote_average.desc&vote_count.gte=5",
-        "🆕 Latest":      f"discover/movie?with_original_language={lang}&sort_by=release_date.desc&primary_release_date.gte=2022-01-01&vote_count.gte=0",
-        "🏆 Classics":    f"discover/movie?with_original_language={lang}&sort_by=vote_count.desc&primary_release_date.gte=2010-01-01&primary_release_date.lte=2023-12-31",
-        "📼 Old Classics":f"discover/movie?with_original_language={lang}&sort_by=vote_count.desc&primary_release_date.lte=2010-12-31",
+        "⭐ Top Rated":   f"discover/movie?with_original_language={lang}&sort_by=vote_average.desc&vote_count.gte=50",
+        "🆕 Latest":      f"discover/movie?with_original_language={lang}&sort_by=release_date.desc&primary_release_date.gte=2023-01-01&vote_count.gte=5",
+        "🏆 Classics":    f"discover/movie?with_original_language={lang}&sort_by=vote_count.desc&primary_release_date.gte=2015-01-01&primary_release_date.lte=2023-12-31",
+        "📼 Old Classics":f"discover/movie?with_original_language={lang}&sort_by=vote_count.desc&primary_release_date.lte=2014-12-31",
         "💥 Action":      f"discover/movie?with_original_language={lang}&with_genres=28&sort_by=popularity.desc&page=1",
-        genre_label:      f"discover/movie?with_original_language={lang}&with_genres={genre_id}&sort_by=popularity.desc&vote_count.gte=0",
+        genre_label:      f"discover/movie?with_original_language={lang}&with_genres={genre_id}&sort_by=popularity.desc&vote_count.gte=20",
     }
     
     with concurrent.futures.ThreadPoolExecutor(max_workers=Config.MAX_WORKERS_API) as ex:
@@ -331,28 +330,6 @@ def fetch_telugu_movies() -> Dict[str, list]:
 def fetch_hindi_movies() -> Dict[str, list]:
     return _fetch_regional("hi", "😂 Comedy")
 
-@st.cache_data(ttl=Config.TRENDING_TTL, show_spinner=False)
-def fetch_global_movies() -> Dict[str, list]:
-    """Fetches global (English) cinema highlights."""
-    return _fetch_regional("en", "🌍 Sci-Fi")
-
-def fetch_tmdb_recommendations(movie_id: str) -> Tuple[list, list, list, list, list]:
-    """Fallback: Fetch recommendations directly from TMDB API."""
-    data = tmdb_get(f"movie/{movie_id}/recommendations?language=en-US&page=1")
-    if not data or not data.get("results"):
-        return [], [], [], [], []
-    
-    recs = data["results"][:6]
-    ids = [str(r["id"]) for r in recs]
-    names = [r.get("title", "Unknown") for r in recs]
-    years = [safe_year(r.get("release_date", "")) for r in recs]
-    ratings = [safe_rating(r.get("vote_average", 0)) for r in recs]
-    
-    with concurrent.futures.ThreadPoolExecutor(max_workers=len(ids)) as ex:
-        details = list(ex.map(fetch_movie_details, ids))
-        
-    return names, years, ratings, ids, details
-
 # ── Recommendation Engine ─────────────────────────────────────────────────────
 
 @st.cache_resource(show_spinner=False)
@@ -378,43 +355,30 @@ def load_data() -> Tuple[pd.DataFrame, np.ndarray]:
         return pd.DataFrame(), np.array([])
 
 def recommend(movie_title: str, movies: pd.DataFrame, similarity: np.ndarray, top_n: int = 5) -> Tuple[list, list, list, list, list]:
-    """Return top_n recommendations with a hybrid fallback to TMDB API."""
-    # Attempt to find the movie in our local NLP dataset
+    """Return top_n recommendations weighted by ML similarity × user ratings."""
     try:
-        match = movies[movies["title"] == movie_title]
-        if match.empty:
-            # Fallback 1: Search TMDB to get the ID, then get TMDB recs
-            search = tmdb_get(f"search/movie?query={_url_quote(movie_title)}&page=1")
-            if search and search.get("results"):
-                return fetch_tmdb_recommendations(str(search["results"][0]["id"]))
-            return [], [], [], [], []
-            
-        idx = match.index[0]
-        movie_id_orig = str(match.iloc[0].get("movie_id", ""))
-    except Exception:
+        idx = movies[movies["title"] == movie_title].index[0]
+    except (IndexError, KeyError):
         return [], [], [], [], []
 
-    # NLP Similarity Calculation
-    try:
-        sims = similarity[idx].copy()
-        sims[idx] = 0
-        raw_ratings = pd.to_numeric(movies.get("vote_average", pd.Series(dtype=float)), errors="coerce").fillna(0).values
-        max_r = raw_ratings.max() or 1.0
-        norm_r = raw_ratings / max_r
-        scores = 0.7 * sims + 0.3 * norm_r
+    sims = similarity[idx].copy()
+    sims[idx] = 0
 
-        k = min(top_n, len(scores) - 1)
-        if k <= 0:
-            # Fallback 2: Even if in dataset, if no similar items found locally, try TMDB API
-            if movie_id_orig: return fetch_tmdb_recommendations(movie_id_orig)
-            return [], [], [], [], []
-            
-        top_indices = np.argpartition(scores, -k)[-k:]
-        top_indices = top_indices[np.argsort(scores[top_indices])[::-1]]
-        movie_ids = [str(movies.iloc[i].movie_id) for i in top_indices]
-    except Exception:
-        if movie_id_orig: return fetch_tmdb_recommendations(movie_id_orig)
+    raw_ratings = pd.to_numeric(movies.get("vote_average", pd.Series(dtype=float)), errors="coerce").fillna(0).values
+    max_r = raw_ratings.max() or 1.0
+    norm_r = raw_ratings / max_r
+    
+    # 70% content similarity weight, 30% rating weight
+    scores = 0.7 * sims + 0.3 * norm_r
+
+    k = min(top_n, len(scores) - 1)
+    if k <= 0:
         return [], [], [], [], []
+        
+    top_indices = np.argpartition(scores, -k)[-k:]
+    top_indices = top_indices[np.argsort(scores[top_indices])[::-1]]
+
+    movie_ids = [str(movies.iloc[i].movie_id) for i in top_indices]
     
     with concurrent.futures.ThreadPoolExecutor(max_workers=top_n) as executor:
         details_list = list(executor.map(fetch_movie_details, movie_ids))

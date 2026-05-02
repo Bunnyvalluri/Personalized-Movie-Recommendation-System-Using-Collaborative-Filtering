@@ -53,13 +53,14 @@ if "watch" in st.query_params:
         """
         final_html = html_content.replace("<head>", f"<head>{injection_script}")
         
-        st.markdown("""<style>
-        .stApp>header, footer, #MainMenu {display:none!important;}
-        .block-container {padding:0!important; max-width:100%!important; height:100vh!important;}
-        iframe {border:none !important;}
-        </style>""", unsafe_allow_html=True)
-        
-        components.html(final_html, height=1200, scrolling=True)
+        st.markdown(f"""
+        <style>
+        .stApp>header, footer, #MainMenu {{display:none!important;}}
+        .block-container {{padding:0!important; max-width:100%!important; height:100vh!important; overflow:hidden;}}
+        .player-wrapper {{width:100%; height:100vh; border:none;}}
+        </style>
+        <iframe srcdoc="{_html.escape(final_html)}" class="player-wrapper" allowfullscreen allow="autoplay; encrypted-media"></iframe>
+        """, unsafe_allow_html=True)
     except Exception as e:
         st.error(f"Failed to load premium player: {e}")
         st.stop()
